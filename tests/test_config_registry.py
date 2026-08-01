@@ -6,6 +6,7 @@ from lib.config.registry import PROVIDER_REGISTRY, ModelInfo, ProviderMeta
 def test_all_providers_registered():
     assert set(PROVIDER_REGISTRY.keys()) == {
         "gemini-aistudio",
+        "gemini-llm360",
         "gemini-vertex",
         "ark",
         "ark-agent-plan",
@@ -16,6 +17,7 @@ def test_all_providers_registered():
         "minimax",
         "kling",
         "agnes",
+        "elevenlabs",
     }
 
 
