@@ -118,7 +118,7 @@ def _build_gemini_image(config: LoadedConfig, model_id: str | None, *, backend_t
     kwargs: dict[str, Any] = {
         "backend_type": backend_type,
         "api_key": config.credentials.get("api_key"),
-        "base_url": config.credentials.get("base_url"),
+        "base_url": _resolve_base_url(config),
         "rate_limiter": config.rate_limiter,
         "image_model": model_id,
     }
@@ -132,7 +132,7 @@ def _build_gemini_video(config: LoadedConfig, model_id: str | None, *, backend_t
     kwargs: dict[str, Any] = {
         "backend_type": backend_type,
         "api_key": config.credentials.get("api_key"),
-        "base_url": config.credentials.get("base_url"),
+        "base_url": _resolve_base_url(config),
         "rate_limiter": config.rate_limiter,
         "video_model": model_id,
     }
@@ -349,7 +349,7 @@ _SIMPLE_MEDIA_PAIRS: list[tuple[str, str]] = [
     ("dashscope", "audio"),
 ]
 
-# gemini 两个 provider_id → backend_type，每个 × image/video 登记一行。
+# Gemini 官方两种 provider_id × image/video；LLM360 代理只暴露当前已桥接的 Veo 视频通道。
 _GEMINI_BACKEND_TYPES: dict[str, str] = {"gemini-aistudio": "aistudio", "gemini-vertex": "vertex"}
 
 PROVIDER_SPEC_REGISTRY: dict[tuple[str, str], ProviderSpec] = {
@@ -361,6 +361,9 @@ PROVIDER_SPEC_REGISTRY.update(
         for provider_id, backend_type in _GEMINI_BACKEND_TYPES.items()
         for media_type in ("image", "video")
     }
+)
+PROVIDER_SPEC_REGISTRY[("gemini-llm360", "video")] = _gemini_spec(
+    "gemini-llm360", "video", backend_type="llm360"
 )
 PROVIDER_SPEC_REGISTRY.update(
     {(_KLING_REGISTRY_BACKEND, media_type): _kling_spec(media_type) for media_type in ("image", "video")}

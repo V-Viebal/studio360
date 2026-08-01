@@ -50,6 +50,25 @@ class TestGeminiVideoBackendProperties:
         assert VideoCapability.VIDEO_EXTEND in caps
         assert VideoCapability.GENERATE_AUDIO not in caps
 
+    def test_llm360_client_uses_gateway_base_url_and_x_goog_api_key(self, mock_rate_limiter):
+        with patch("google.genai.Client") as client_cls:
+            from lib.video_backends.gemini import GeminiVideoBackend
+
+            backend = GeminiVideoBackend(
+                backend_type="llm360",
+                api_key="llm360-access-key",
+                base_url="https://api-llm360.hmz.one/v1beta/",
+                rate_limiter=mock_rate_limiter,
+                video_model="veo-3.1-fast-generate-preview",
+            )
+
+        assert backend.name == "gemini-llm360"
+        assert backend.model == "veo-3.1-fast-generate-preview"
+        client_cls.assert_called_once_with(
+            api_key="llm360-access-key",
+            http_options={"base_url": "https://api-llm360.hmz.one/"},
+        )
+
     def test_capabilities_vertex(self, mock_rate_limiter, tmp_path):
         # 准备 mock vertex 凭证文件
         creds_file = tmp_path / "vertex_credentials.json"
