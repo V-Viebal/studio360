@@ -362,9 +362,7 @@ PROVIDER_SPEC_REGISTRY.update(
         for media_type in ("image", "video")
     }
 )
-PROVIDER_SPEC_REGISTRY[("gemini-llm360", "video")] = _gemini_spec(
-    "gemini-llm360", "video", backend_type="llm360"
-)
+PROVIDER_SPEC_REGISTRY[("gemini-llm360", "video")] = _gemini_spec("gemini-llm360", "video", backend_type="llm360")
 PROVIDER_SPEC_REGISTRY.update(
     {(_KLING_REGISTRY_BACKEND, media_type): _kling_spec(media_type) for media_type in ("image", "video")}
 )
