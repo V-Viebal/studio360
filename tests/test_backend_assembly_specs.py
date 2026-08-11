@@ -176,6 +176,26 @@ class TestGeminiSpec:
         )
 
     @patch("lib.video_backends.registry.create_backend")
+    def test_llm360_video_uses_gateway_default_base_url(self, mock_create):
+        spec = get_provider_spec("gemini-llm360", "video")
+        assert spec.registry_backend == "gemini"
+        limiter = object()
+        config = LoadedConfig(
+            credentials={"api_key": "llm360-access-key", "base_url": None},
+            provider_meta=PROVIDER_REGISTRY.get("gemini-llm360"),
+            rate_limiter=limiter,
+        )
+        spec.build_backend(config, "veo-3.1-fast-generate-preview")
+        mock_create.assert_called_once_with(
+            "gemini",
+            backend_type="llm360",
+            api_key="llm360-access-key",
+            base_url="https://api-llm360.hmz.one",
+            rate_limiter=limiter,
+            video_model="veo-3.1-fast-generate-preview",
+        )
+
+    @patch("lib.video_backends.registry.create_backend")
     def test_vertex_video_passes_active_credentials_path(self, mock_create):
         spec = get_provider_spec("gemini-vertex", "video")
         config = LoadedConfig(
@@ -527,6 +547,11 @@ class TestRegistryShape:
         for provider in ("ark", "ark-agent-plan", "grok", "openai", "vidu", "dashscope", "minimax"):
             assert (provider, "image") in PROVIDER_SPEC_REGISTRY
             assert (provider, "video") in PROVIDER_SPEC_REGISTRY
+
+    def test_llm360_registers_only_video(self):
+        assert ("gemini-llm360", "video") in PROVIDER_SPEC_REGISTRY
+        assert ("gemini-llm360", "image") not in PROVIDER_SPEC_REGISTRY
+        assert ("gemini-llm360", "text") not in PROVIDER_SPEC_REGISTRY
 
     def test_text_family_complete(self):
         # 文本九对：七 provider + gemini 两 id（aistudio/vertex）

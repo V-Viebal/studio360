@@ -417,6 +417,40 @@ PROVIDER_REGISTRY: dict[str, ProviderMeta] = {
             ),
         },
     ),
+    "gemini-llm360": ProviderMeta(
+        display_name="Gemini (LLM360)",
+        description=(
+            "通过 LLM360 / CLIProxyAPIPlus 调用 Gemini Veo；Studio360 保存的是 LLM360 网关 API Key，"
+            "上游 Gemini API Key 只保存在 LLM360 凭证池中。"
+        ),
+        required_keys=["api_key"],
+        optional_keys=["base_url", "video_rpm", "request_gap", "video_max_workers"],
+        secret_keys=["api_key"],
+        models={
+            "veo-3.1-generate-preview": ModelInfo(
+                display_name="Veo 3.1 (LLM360)",
+                media_type="video",
+                capabilities=["text_to_video", "image_to_video", "negative_prompt", "video_extend"],
+                supported_durations=[4, 6, 8],
+                duration_resolution_constraints={"1080p": [8]},
+                resolutions=["720p", "1080p"],
+                max_reference_images=3,
+                pricing=_veo_video_pricing("veo-3.1-generate-preview", _VEO_STANDARD_RATES),
+            ),
+            "veo-3.1-fast-generate-preview": ModelInfo(
+                display_name="Veo 3.1 Fast (LLM360)",
+                media_type="video",
+                capabilities=["text_to_video", "image_to_video", "negative_prompt", "video_extend"],
+                default=True,
+                supported_durations=[4, 6, 8],
+                duration_resolution_constraints={"1080p": [8]},
+                resolutions=["720p", "1080p"],
+                max_reference_images=3,
+                pricing=_veo_video_pricing("veo-3.1-fast-generate-preview", _VEO_FAST_RATES),
+            ),
+        },
+        default_base_url="https://api-llm360.hmz.one",
+    ),
     "gemini-vertex": ProviderMeta(
         display_name="Vertex AI",
         description="Google Cloud Vertex AI 企业级平台，支持 Gemini 和 Imagen 模型，提供更高配额和音频生成能力。",

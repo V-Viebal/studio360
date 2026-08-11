@@ -3,6 +3,7 @@
 MESSAGES: dict[str, str] = {
     # Provider display names
     "provider_name_gemini-aistudio": "AI Studio",
+    "provider_name_gemini-llm360": "Gemini (LLM360)",
     "provider_name_gemini-vertex": "Vertex AI",
     "provider_name_ark": "Volcengine Ark",
     "provider_name_ark-agent-plan": "Volcengine Ark Agent Plan",
@@ -15,6 +16,7 @@ MESSAGES: dict[str, str] = {
     "provider_name_agnes": "Agnes",
     "provider_name_elevenlabs": "ElevenLabs (LLM360)",
     # Provider descriptions
+    "provider_desc_gemini-llm360": "Tạo video Gemini Veo qua cổng credential LLM360 / CLIProxyAPIPlus; Studio360 chỉ lưu API key của cổng LLM360.",
     "provider_desc_gemini-aistudio": "Google AI Studio cung cấp các mô hình Gemini hỗ trợ tạo ảnh và video, phù hợp cho việc dựng prototype nhanh và dự án cá nhân.",
     "provider_desc_gemini-vertex": "Nền tảng doanh nghiệp Vertex AI của Google Cloud hỗ trợ các mô hình Gemini và Imagen với hạn mức cao hơn cùng khả năng tạo âm thanh.",
     "provider_desc_ark": "Nền tảng AI Volcengine Ark của ByteDance hỗ trợ tạo video Seedance và tạo ảnh Seedream, kèm âm thanh và điều khiển seed.",

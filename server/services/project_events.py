@@ -512,6 +512,15 @@ class ProjectEventService:
             existing = current_episodes.get(episode)
             if existing and existing["title"] == title and existing["script_file"] == expected_script_file:
                 continue
+            if existing:
+                bound_script_file = existing["script_file"]
+                if bound_script_file and bound_script_file != expected_script_file:
+                    bound_path = project_path / bound_script_file
+                    if not bound_path.exists():
+                        bound_path = scripts_dir / Path(bound_script_file).name
+                    if bound_path.exists():
+                        # project.json 已有仍然存在的绑定文件时，不让同 episode 的其他候选文件反复改写它。
+                        continue
 
             try:
                 with project_change_source("filesystem"):

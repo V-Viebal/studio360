@@ -3,6 +3,7 @@
 MESSAGES: dict[str, str] = {
     # Provider display names
     "provider_name_gemini-aistudio": "AI Studio",
+    "provider_name_gemini-llm360": "Gemini（LLM360）",
     "provider_name_gemini-vertex": "Vertex AI",
     "provider_name_ark": "火山方舟",
     "provider_name_ark-agent-plan": "火山方舟 Agent Plan",
@@ -15,6 +16,7 @@ MESSAGES: dict[str, str] = {
     "provider_name_agnes": "Agnes",
     "provider_name_elevenlabs": "ElevenLabs（LLM360）",
     # Provider descriptions
+    "provider_desc_gemini-llm360": "通过 LLM360 / CLIProxyAPIPlus 凭证网关调用 Gemini Veo 视频生成；Studio360 仅保存 LLM360 网关 API Key。",
     "provider_desc_gemini-aistudio": "Google AI Studio 提供 Gemini 系列模型，支持图片和视频生成，适合快速原型和个人项目。",
     "provider_desc_gemini-vertex": "Google Cloud Vertex AI 企业级平台，支持 Gemini 和 Imagen 模型，提供更高配额和音频生成能力。",
     "provider_desc_ark": "字节跳动火山方舟 AI 平台，支持 Seedance 视频生成和 Seedream 图片生成，具备音频生成和种子控制能力。",

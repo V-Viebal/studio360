@@ -23,7 +23,7 @@ from lib.app_data_dir import app_data_dir
 from lib.config.registry import PROVIDER_REGISTRY
 from lib.config.repository import mask_secret
 from lib.config.service import ConfigService, ProviderConfigValueError
-from lib.config.url_utils import normalize_base_url
+from lib.config.url_utils import ensure_google_base_url
 from lib.db import get_async_session
 from lib.db.base import dt_to_iso
 from lib.db.repositories.credential_repository import CredentialRepository
@@ -635,11 +635,11 @@ _CONNECTION_TEST_TIMEOUT = 15  # 秒
 
 
 def _test_gemini_aistudio(config: dict[str, str], _t: Callable[..., str]) -> ConnectionTestResponse:
-    """通过 models.list() 验证 Gemini AI Studio API Key。"""
+    """通过 models.list() 验证 Gemini API-key 兼容 endpoint（官方 AI Studio 或 LLM360）。"""
     from google import genai
 
     api_key = config["api_key"]
-    base_url = normalize_base_url(config.get("base_url"))
+    base_url = ensure_google_base_url(config.get("base_url"))
     http_options = {"base_url": base_url} if base_url else None
     client = genai.Client(api_key=api_key, http_options=http_options)  # type: ignore[arg-type]
 
@@ -880,6 +880,7 @@ def _test_kling(config: dict[str, str], _t: Callable[..., str]) -> ConnectionTes
 
 _TEST_DISPATCH: dict[str, Callable[[dict[str, str], Any], ConnectionTestResponse]] = {
     "gemini-aistudio": _test_gemini_aistudio,
+    "gemini-llm360": _test_gemini_aistudio,
     "gemini-vertex": _test_gemini_vertex,
     "ark": _test_ark,
     "ark-agent-plan": _test_ark,

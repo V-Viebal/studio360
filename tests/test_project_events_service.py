@@ -241,6 +241,45 @@ class TestProjectEventService:
 
         await service.shutdown()
 
+    def test_duplicate_episode_scripts_do_not_flip_existing_binding(self, tmp_path):
+        """同一 episode 的重复脚本文件不能让 project.json 在两个绑定之间来回抖动。"""
+        pm = ProjectManager(tmp_path / "projects")
+        pm.create_project("demo")
+        pm.create_project_metadata("demo", "Demo", "Anime", "narration")
+
+        project_path = pm.get_project_path("demo")
+        scripts_dir = project_path / "scripts"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+
+        project = pm.load_project("demo")
+        project["episodes"] = [
+            {"episode": 1, "title": "A Gentle Wave", "script_file": "scripts/episode_1_retry.json"}
+        ]
+        project_file = project_path / ProjectManager.PROJECT_FILE
+        project_file.write_text(json.dumps(project, ensure_ascii=False), encoding="utf-8")
+        before = project_file.read_text(encoding="utf-8")
+
+        for filename in ("episode_1.json", "episode_1_retry.json"):
+            (scripts_dir / filename).write_text(
+                json.dumps(
+                    {
+                        "episode": 1,
+                        "title": "A Gentle Wave",
+                        "content_mode": "narration",
+                        "segments": [],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+        service = ProjectEventService(tmp_path, poll_interval=0.05)
+        service._ensure_script_index_synced("demo")
+
+        after = project_file.read_text(encoding="utf-8")
+        assert after == before
+        assert pm.load_project("demo")["episodes"][0]["script_file"] == "scripts/episode_1_retry.json"
+
     @pytest.mark.asyncio
     async def test_emitted_batch_is_broadcast_without_waiting_for_snapshot_diff(self, tmp_path):
         pm = ProjectManager(tmp_path / "projects")
