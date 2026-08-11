@@ -50,6 +50,16 @@ def test_ark_agent_plan_fast_has_no_1080p() -> None:
     assert p.models["doubao-seedance-2.0-fast"].resolutions == ["480p", "720p"]
 
 
+def test_gemini_llm360_is_video_only_and_uses_gateway_default() -> None:
+    meta = PROVIDER_REGISTRY["gemini-llm360"]
+    assert meta.media_types == ["video"]
+    assert meta.required_keys == ["api_key"]
+    assert meta.secret_keys == ["api_key"]
+    assert meta.default_base_url == "https://api-llm360.hmz.one"
+    assert meta.models["veo-3.1-fast-generate-preview"].default is True
+    assert "image_to_video" in meta.models["veo-3.1-fast-generate-preview"].capabilities
+
+
 def test_ark_agent_plan_model_id_format_differs_from_ark() -> None:
     ark_ids = set(PROVIDER_REGISTRY["ark"].models.keys())
     agent_plan_ids = set(PROVIDER_REGISTRY["ark-agent-plan"].models.keys())

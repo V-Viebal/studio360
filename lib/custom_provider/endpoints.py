@@ -33,10 +33,10 @@ from lib.text_backends.openai import OpenAITextBackend
 from lib.video_backends.ark import ArkVideoBackend
 from lib.video_backends.base import VideoCapabilities
 from lib.video_backends.dashscope import DashScopeVideoBackend
-from lib.video_backends.grok import GrokVideoBackend
 from lib.video_backends.kling import KlingVideoBackend
 from lib.video_backends.minimax import MiniMaxVideoBackend
 from lib.video_backends.newapi import NewAPIVideoBackend
+from lib.video_backends.grok import GrokVideoBackend
 from lib.video_backends.openai import OpenAIVideoBackend
 from lib.video_backends.v2_video_generations import V2VideoGenerationsBackend
 from lib.video_backends.vidu import ViduVideoBackend
@@ -146,7 +146,9 @@ def _build_openai_video(provider, model_id: str) -> CustomVideoBackend:
     # that path does not preserve the native audio-capable response contract.
     # Keep the endpoint key stable for existing custom-provider records, but
     # select the native backend when the configured host is xAI itself.
-    if model_id.lower().startswith("grok-imagine-video") and (hostname == "api.x.ai" or hostname.endswith(".x.ai")):
+    if model_id.lower().startswith("grok-imagine-video") and (
+        hostname == "api.x.ai" or hostname.endswith(".x.ai")
+    ):
         delegate = GrokVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)
     else:
         delegate = OpenAIVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)

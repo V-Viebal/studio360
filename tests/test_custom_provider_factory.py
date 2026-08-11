@@ -81,6 +81,7 @@ class TestEndpointDispatch:
             model="grok-imagine-video-1.5",
         )
 
+
     @patch("lib.custom_provider.endpoints.NewAPIVideoBackend")
     def test_newapi_video(self, mock_cls):
         provider = _make_provider()

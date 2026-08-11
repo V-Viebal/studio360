@@ -58,7 +58,7 @@ class _GeminiBridgeHandler(BaseHTTPRequestHandler):
             return
         self._write(404, b"not found", "text/plain")
 
-    def log_message(self, format: str, *args: Any) -> None:
+    def log_message(self, _format: str, *args: Any) -> None:
         return
 
 
