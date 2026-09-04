@@ -215,7 +215,7 @@ jobs:
 
       - name: Verify GitHub OIDC claims without exposing the token
         env:
-          EXPECTED_OIDC_SUBJECT: repo:${{ github.repository }}:ref:refs/heads/${{ github.ref_name }}
+          EXPECTED_OIDC_SUBJECT: repo:${{ github.repository_owner }}@${{ github.repository_owner_id }}/${{ github.event.repository.name }}@${{ github.repository_id }}:ref:refs/heads/${{ github.ref_name }}
         shell: bash
         run: |
           set -Eeuo pipefail
