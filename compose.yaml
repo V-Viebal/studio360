@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-arcreel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in Coolify}
+      POSTGRES_DB: ${POSTGRES_DB:-arcreel}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arcreel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  app:
+    image: ${RELEASE_IMAGE:-ghcr.io/v-viebal/studio360:local}
+    pull_policy: ${RELEASE_PULL_POLICY:-if_not_present}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-arcreel}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-arcreel}
+      NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - projects_data:/app/projects
+      - logs_data:/app/logs
+      - vertex_keys_data:/app/vertex_keys
+      - claude_data:/root/.claude
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "1241"
+    networks:
+      - internal
+      - coolify
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: coolify
+      traefik.http.routers.studio360.rule: Host(`${PUBLIC_DOMAIN:-studio360.hmz.one}`)
+      traefik.http.routers.studio360.entrypoints: https
+      traefik.http.routers.studio360.tls: "true"
+      traefik.http.routers.studio360.tls.certresolver: letsencrypt
+      traefik.http.services.studio360.loadbalancer.server.port: "1241"
+
+volumes:
+  postgres_data:
+    name: ${STUDIO360_POSTGRES_VOLUME:-studio360-local-postgres}
+  projects_data:
+    name: ${STUDIO360_PROJECTS_VOLUME:-studio360-local-projects}
+  logs_data:
+    name: ${STUDIO360_LOGS_VOLUME:-studio360-local-logs}
+  vertex_keys_data:
+    name: ${STUDIO360_VERTEX_KEYS_VOLUME:-studio360-local-vertex-keys}
+  claude_data:
+    name: ${STUDIO360_CLAUDE_VOLUME:-studio360-local-claude-data}
+
+networks:
+  internal:
+    internal: true
+  coolify:
+    external: true

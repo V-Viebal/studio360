@@ -1,100 +1,313 @@
-name: Docker
+name: Studio360 Deploy
 
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "LICENSE"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/pull_request_template.md"
-    tags: ["v*"]
+    branches: [main, staging]
   workflow_dispatch:
 
 permissions:
-  contents: write
-  packages: write
-  security-events: write
+  contents: read
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+concurrency:
+  group: docker.yml-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
-  build-and-push:
+
+  validate:
+    name: Validate source and deployment contract
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Compute lowercase image name
-        run: echo "IMAGE_NAME_LC=${REPO,,}" >> "$GITHUB_ENV"
-        env:
-          REPO: ${{ github.repository }}
-
-      - uses: docker/setup-buildx-action@v4.2.0
-
-      - uses: docker/login-action@v4.4.0
+      - name: Checkout triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          registry: ${{ env.REGISTRY }}
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Assert source identity and compile Python sources
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${GITHUB_REPOSITORY}" = "V-Viebal/studio360"
+          case "${GITHUB_REF}" in refs/heads/main|refs/heads/staging) ;; *) exit 1 ;; esac
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          python3 -m compileall -q lib server scripts
+      - name: Validate deployment scripts and Compose contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n scripts/coolify_ghcr_start.sh
+          bash -n scripts/coolify_registry_credentials.sh
+          bash -n scripts/deploy_coolify_application.sh
+          node --check scripts/reconcile_coolify_registry_credentials.mjs
+          touch .env
+          POSTGRES_PASSWORD=validation-only docker compose -f compose.yaml config -q
+
+  build:
+    name: Build immutable image on GitHub-hosted runner
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_ref: ${{ steps.image.outputs.image_ref }}
+      image_digest: ${{ steps.image.outputs.image_digest }}
+      target_role: ${{ steps.target.outputs.role }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Resolve target role
+        id: target
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          case "${GITHUB_REF}" in refs/heads/main) role=production ;; refs/heads/staging) role=staging ;; *) exit 1 ;; esac
+          echo "role=${role}" >>"${GITHUB_OUTPUT}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to private GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
 
-      - id: meta
-        uses: docker/metadata-action@v6.2.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-
-      - uses: docker/setup-qemu-action@v4
-
-      - name: Build amd64 image for security scan
-        uses: docker/build-push-action@v7
+      - name: Build and publish immutable image with SBOM and provenance
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
+          file: ./Dockerfile.studio360
           platforms: linux/amd64
-          load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:scan-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        env:
-          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:scan-${{ github.sha }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: "0"
-
-      - name: Upload Trivy SARIF
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4.37.0
-        with:
-          sarif_file: trivy-results.sarif
-          category: trivy-image
-
-      - name: Build & push multi-arch image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ghcr.io/v-viebal/studio360:${{ github.sha }}
+            ghcr.io/v-viebal/studio360:${{ steps.target.outputs.role }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            RELEASE_SHA=${{ github.sha }}
+            STUDIO360_RELEASE_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=studio360-${{ steps.target.outputs.role }}
+          cache-to: type=gha,mode=max,scope=studio360-${{ steps.target.outputs.role }}
+          provenance: mode=max
+          sbom: true
 
-      - if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v3
+      - name: Resolve exact registry digest
+        id: image
+        shell: bash
+        env:
+          BUILD_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -Eeuo pipefail
+          [[ "${BUILD_DIGEST}" == sha256:* ]] || { echo "Build did not return an OCI digest." >&2; exit 1; }
+          echo "image_digest=${BUILD_DIGEST}" >>"${GITHUB_OUTPUT}"
+          echo "image_ref=ghcr.io/v-viebal/studio360@${BUILD_DIGEST}" >>"${GITHUB_OUTPUT}"
+
+      - name: Verify GHCR package is private
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+        run: |
+          set -Eeuo pipefail
+          anonymous_token="$(curl --fail --silent --show-error 'https://ghcr.io/token?service=ghcr.io&scope=repository:v-viebal/studio360:pull' | jq -r '.token // empty' || true)"
+          if [[ -z "${anonymous_token}" ]]; then echo "GHCR denied anonymous pull access as expected."; exit 0; fi
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --header "Authorization: Bearer ${anonymous_token}" --header 'Accept: application/vnd.oci.image.manifest.v1+json' "https://ghcr.io/v2/v-viebal/studio360/manifests/${IMAGE_DIGEST}")"
+          case "${status}" in 401|403|404) ;; 200) echo "GHCR package is anonymously readable; expected private." >&2; exit 1 ;; *) echo "Unexpected anonymous GHCR response: HTTP ${status}" >&2; exit 1 ;; esac
+
+  deploy:
+    name: Deploy immutable digest through locked Coolify Application
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      packages: read
+    env:
+      IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+      RELEASE_SHA: ${{ github.sha }}
+      IMAGE_REPO: ghcr.io/v-viebal/studio360
+      INFISICAL_API_URL: https://keys.hmz.one
+      INFISICAL_PROJECT_SLUG: studio360-i-cn-8
+      INFISICAL_ENV_SLUG: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+      INFISICAL_IDENTITY_ID: ${{ github.ref_name == 'main' && (vars.INFISICAL_PRODUCTION_IDENTITY_ID || '2a377305-f516-4d0f-a9a7-7eec3fac01e4') || (vars.INFISICAL_STAGING_IDENTITY_ID || '264338aa-530f-46e5-9d73-cb31b1006c05') }}
+      INFISICAL_SECRET_PATH: /github-actions
+      INFISICAL_ORIGIN_IP: 142.91.101.5
+      COOLIFY_ORIGIN_IP: 142.91.101.5
+      COOLIFY_PROJECT_UUID: m11b6voah95haymnyc6oyjeh
+      COOLIFY_ENVIRONMENT_UUID: ${{ github.ref_name == 'main' && 'w13z2lnb7lbhqwgwjkki307d' || 'wuvpyvkxizpsuikd78u20zl2' }}
+      COOLIFY_ENVIRONMENT_NAME: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      COOLIFY_DESTINATION_UUID: tt6sqgkq1jr2xf4h9u22h9fa
+      COOLIFY_SERVER_UUID: rejddmxzsu85aiq1zqnt48wr
+      COOLIFY_APPLICATION_UUID: ${{ github.ref_name == 'main' && (vars.STUDIO360_PRODUCTION_APPLICATION_UUID || '5mvkdfjxuh6uko7brzhqxnp1') || (vars.STUDIO360_STAGING_APPLICATION_UUID || 'htortr9hw2g9ifpeh8p76ner') }}
+      COOLIFY_APPLICATION_NAME: ${{ github.ref_name == 'main' && 'studio360-production' || 'studio360-staging' }}
+      COOLIFY_PUBLIC_DOMAIN: ${{ github.ref_name == 'main' && 'studio360.hmz.one' || 'studio360-staging.4th.hmz.one' }}
+      COOLIFY_GIT_BRANCH: ${{ github.ref_name }}
+      COOLIFY_GIT_REPOSITORY: V-Viebal/studio360
+      COOLIFY_COMPOSE_LOCATION: /compose.yaml
+      COOLIFY_PORTS_EXPOSES: "1241"
+      HEALTH_URL: ${{ github.ref_name == 'main' && 'https://studio360.hmz.one/health' || 'https://studio360-staging.4th.hmz.one/health' }}
+      HEALTH_EXPECTED_REGEX: status
+      COMPOSE_PROJECT_NAME: studio360-${{ github.ref_name }}
+    steps:
+      - name: Checkout exact deployment revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          generate_release_notes: true
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify target-scoped deployment variables
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${GITHUB_REPOSITORY}" = "V-Viebal/studio360"
+          case "${GITHUB_REF}" in refs/heads/main|refs/heads/staging) ;; *) echo "Unsupported release ref." >&2; exit 1 ;; esac
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          : "${INFISICAL_IDENTITY_ID:?Target Infisical OIDC identity is not configured}"
+          : "${COOLIFY_APPLICATION_UUID:?Target Coolify Application is not configured}"
+          [[ "${COOLIFY_APPLICATION_UUID}" != UNCONFIGURED_* ]] || { echo "Target Application is intentionally unconfigured." >&2; exit 1; }
+      - name: Require a green staging run for the same revision before production
+        if: github.ref_name == 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_PATH: .github/workflows/docker.yml
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for attempt in $(seq 1 60); do
+            runs="$(curl --fail --silent --show-error \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=staging&head_sha=${GITHUB_SHA}&per_page=100")"
+            if jq -e --arg path "${WORKFLOW_PATH}" 'any(.workflow_runs[]; .path == $path and .status == "completed" and .conclusion == "success")' <<<"${runs}" >/dev/null; then
+              echo "Staging passed for ${GITHUB_SHA}; production promotion is allowed."
+              exit 0
+            fi
+            if [[ "${attempt}" -eq 60 ]]; then
+              echo "No successful staging run for ${GITHUB_SHA}; production is fail-closed." >&2
+              exit 1
+            fi
+            echo "Waiting for staging run ${attempt}/60 for ${GITHUB_SHA}."
+            sleep 10
+          done
+
+      - name: Route Infisical and Coolify through verified origins
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "${INFISICAL_ORIGIN_IP} keys.hmz.one" | sudo tee -a /etc/hosts >/dev/null
+          echo "${COOLIFY_ORIGIN_IP} host.hmz.one" | sudo tee -a /etc/hosts >/dev/null
+
+      - name: Verify GitHub OIDC claims without exposing the token
+        env:
+          EXPECTED_OIDC_SUBJECT: repo:${{ github.repository }}:ref:refs/heads/${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          : "${ACTIONS_ID_TOKEN_REQUEST_URL:?GitHub OIDC request URL is missing}"
+          : "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:?GitHub OIDC request token is missing}"
+          oidc_token="$(curl --fail --silent --show-error --header "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https%3A%2F%2Fgithub.com%2FV-Viebal" | jq -r '.value // empty')"
+          : "${oidc_token:?GitHub did not return an OIDC token}"
+          claims="$(printf '%s' "${oidc_token}" | python3 -c 'import base64,json,sys; p=sys.stdin.read().split(".")[1]; p += "=" * (-len(p) % 4); c=json.loads(base64.urlsafe_b64decode(p)); print(json.dumps({"sub":c.get("sub"),"aud":c.get("aud")}))')"
+          test "$(jq -r '.sub // empty' <<<"${claims}")" = "${EXPECTED_OIDC_SUBJECT}"
+          test "$(jq -r '.aud // empty' <<<"${claims}")" = "https://github.com/V-Viebal"
+          unset oidc_token
+
+      - name: Fetch target-scoped Coolify credentials from Infisical
+        uses: Infisical/secrets-action@a663da43e1541832614bfd9dcf9ab67381ea2b98 # v1.0.12
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          oidc-audience: https://github.com/V-Viebal
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          domain: ${{ env.INFISICAL_API_URL }}
+          secret-path: ${{ env.INFISICAL_SECRET_PATH }}
+
+      - name: Deploy, poll, verify, and roll back on failure
+        id: deploy
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+          ALLOW_EMPTY_PREVIOUS_IMAGE: "true"
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          : "${COOLIFY_URL:?COOLIFY_URL was not provided by target Infisical scope}"
+          : "${COOLIFY_API_TOKEN:?COOLIFY_API_TOKEN was not provided by target Infisical scope}"
+          bash scripts/deploy_coolify_application.sh
+
+      - name: Emit secret-free deployment receipt
+        shell: bash
+        run: |
+          jq -cn --arg repository "${GITHUB_REPOSITORY}" --arg revision "${GITHUB_SHA}" --arg image "${IMAGE_REF}" --arg application "${COOLIFY_APPLICATION_UUID}" --arg deployment "${{ steps.deploy.outputs.deployment_uuid }}" --arg previous "${{ steps.deploy.outputs.previous_image }}" --arg domain "${COOLIFY_PUBLIC_DOMAIN}" '{repository:$repository,revision:$revision,image:$image,coolify_application_uuid:$application,deployment_uuid:$deployment,previous_image:$previous,domain:$domain,health:"verified",sbom:"published",provenance:"published"}'
+
+  registry_credentials_cleanup:
+    name: Independently clear temporary GHCR credentials
+    if: ${{ always() }}
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      INFISICAL_API_URL: https://keys.hmz.one
+      INFISICAL_PROJECT_SLUG: studio360-i-cn-8
+      INFISICAL_ENV_SLUG: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+      INFISICAL_IDENTITY_ID: ${{ github.ref_name == 'main' && (vars.INFISICAL_PRODUCTION_IDENTITY_ID || '2a377305-f516-4d0f-a9a7-7eec3fac01e4') || (vars.INFISICAL_STAGING_IDENTITY_ID || '264338aa-530f-46e5-9d73-cb31b1006c05') }}
+      INFISICAL_SECRET_PATH: /github-actions
+      INFISICAL_ORIGIN_IP: 142.91.101.5
+      COOLIFY_ORIGIN_IP: 142.91.101.5
+      COOLIFY_PROJECT_UUID: m11b6voah95haymnyc6oyjeh
+      COOLIFY_ENVIRONMENT_UUID: ${{ github.ref_name == 'main' && 'w13z2lnb7lbhqwgwjkki307d' || 'wuvpyvkxizpsuikd78u20zl2' }}
+      COOLIFY_ENVIRONMENT_NAME: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      COOLIFY_DESTINATION_UUID: tt6sqgkq1jr2xf4h9u22h9fa
+      COOLIFY_SERVER_UUID: rejddmxzsu85aiq1zqnt48wr
+      COOLIFY_APPLICATION_UUID: ${{ github.ref_name == 'main' && (vars.STUDIO360_PRODUCTION_APPLICATION_UUID || '5mvkdfjxuh6uko7brzhqxnp1') || (vars.STUDIO360_STAGING_APPLICATION_UUID || 'htortr9hw2g9ifpeh8p76ner') }}
+      COOLIFY_APPLICATION_NAME: ${{ github.ref_name == 'main' && 'studio360-production' || 'studio360-staging' }}
+      COOLIFY_PUBLIC_DOMAIN: ${{ github.ref_name == 'main' && 'studio360.hmz.one' || 'studio360-staging.4th.hmz.one' }}
+      COOLIFY_GIT_BRANCH: ${{ github.ref_name }}
+      COOLIFY_GIT_REPOSITORY: V-Viebal/studio360
+    steps:
+      - name: Checkout exact cleanup implementation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Route Infisical and Coolify through verified origins
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "${INFISICAL_ORIGIN_IP} keys.hmz.one" | sudo tee -a /etc/hosts >/dev/null
+          echo "${COOLIFY_ORIGIN_IP} host.hmz.one" | sudo tee -a /etc/hosts >/dev/null
+      - name: Fetch target-scoped cleanup credentials
+        uses: Infisical/secrets-action@a663da43e1541832614bfd9dcf9ab67381ea2b98 # v1.0.12
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          oidc-audience: https://github.com/V-Viebal
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          domain: ${{ env.INFISICAL_API_URL }}
+          secret-path: ${{ env.INFISICAL_SECRET_PATH }}
+      - name: Delete and verify all temporary registry rows
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          : "${COOLIFY_URL:?COOLIFY_URL was not provided by target Infisical scope}"
+          : "${COOLIFY_API_TOKEN:?COOLIFY_API_TOKEN was not provided by target Infisical scope}"
+          bash scripts/coolify_registry_credentials.sh clear
+          node scripts/reconcile_coolify_registry_credentials.mjs

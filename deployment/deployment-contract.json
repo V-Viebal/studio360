@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "standard": "init-project-github-infra/immutable-ghcr-coolify-standard",
+  "runner": "ubuntu-latest",
+  "registry": "private-ghcr",
+  "release_refs": {
+    "production": "main",
+    "non_production": "staging"
+  },
+  "credentials": {
+    "provider": "infisical-oidc",
+    "secret_path": "/github-actions",
+    "registry_keys": [
+      "GHCR_USERNAME",
+      "GHCR_TOKEN"
+    ],
+    "coolify_keys": [
+      "COOLIFY_URL",
+      "COOLIFY_API_TOKEN"
+    ]
+  },
+  "promotion": {
+    "production_requires_successful_staging_same_revision": true
+  },
+  "coolify": {
+    "compose_location": "/compose.yaml",
+    "custom_start_command": "bash scripts/coolify_ghcr_start.sh",
+    "image_env_key": "RELEASE_IMAGE",
+    "temporary_registry_cleanup_keys": [
+      "GHCR_USERNAME",
+      "GHCR_TOKEN"
+    ]
+  },
+  "project": "studio360",
+  "repository": "V-Viebal/studio360",
+  "workflow": ".github/workflows/docker.yml",
+  "image": "ghcr.io/v-viebal/studio360",
+  "coolify_project_uuid": "m11b6voah95haymnyc6oyjeh",
+  "server_uuid": "rejddmxzsu85aiq1zqnt48wr",
+  "destination_uuid": "tt6sqgkq1jr2xf4h9u22h9fa",
+  "targets": [
+    {
+      "role": "production",
+      "environment": "production",
+      "environment_uuid": "w13z2lnb7lbhqwgwjkki307d",
+      "release_ref": "main",
+      "application_variable": "STUDIO360_PRODUCTION_APPLICATION_UUID",
+      "application_uuid": "5mvkdfjxuh6uko7brzhqxnp1",
+      "application_name": "studio360-production",
+      "domain": "studio360.hmz.one",
+      "ports_exposes": 1241,
+      "infisical_identity_variable": "INFISICAL_PRODUCTION_IDENTITY_ID"
+    },
+    {
+      "role": "non-production",
+      "environment": "staging",
+      "environment_uuid": "wuvpyvkxizpsuikd78u20zl2",
+      "release_ref": "staging",
+      "application_variable": "STUDIO360_STAGING_APPLICATION_UUID",
+      "application_uuid": "htortr9hw2g9ifpeh8p76ner",
+      "application_name": "studio360-staging",
+      "domain": "studio360-staging.4th.hmz.one",
+      "ports_exposes": 1241,
+      "infisical_identity_variable": "INFISICAL_STAGING_IDENTITY_ID"
+    }
+  ]
+}
