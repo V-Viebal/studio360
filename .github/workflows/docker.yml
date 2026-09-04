@@ -85,7 +85,10 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
-          file: ./Dockerfile.studio360
+          # The repository's production container is the Python/FastAPI
+          # image in Dockerfile. Dockerfile.studio360 is a retired Next.js
+          # artifact and does not match this repository's root layout.
+          file: ./Dockerfile
           platforms: linux/amd64
           push: true
           tags: |
