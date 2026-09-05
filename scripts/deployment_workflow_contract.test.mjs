@@ -67,3 +67,11 @@ test('Coolify-generated proxy configuration is the sole Traefik route owner', as
   assert.doesNotMatch(compose, /^\s*labels:\s*$/m);
   assert.doesNotMatch(compose, /traefik\./i);
 });
+
+test('direct Coolify redeploy reuses only an approved cached digest', async () => {
+  const body = await readFile(new URL('../scripts/coolify_ghcr_start.sh', import.meta.url), 'utf8');
+  assert.match(body, /image_is_approved_locally/);
+  assert.match(body, /Using the cached approved image/);
+  assert.match(body, /Approved image is not cached and no usable GHCR pull credential is available/);
+  assert.match(body, /RELEASE_PULL_POLICY=never/);
+});
