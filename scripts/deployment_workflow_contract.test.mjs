@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const workflowDirectoryUrl = new URL('../.github/workflows/', import.meta.url);
 const contractUrl = new URL('../deployment/deployment-contract.json', import.meta.url);
+const composeUrl = new URL('../compose.yaml', import.meta.url);
 
 async function deploymentWorkflow() {
   const names = (await readdir(workflowDirectoryUrl)).filter((name) => /\.ya?ml$/.test(name));
@@ -59,4 +60,10 @@ test('deployment safety controls remain present', async () => {
   ]) {
     assert.match(workflow, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+});
+
+test('Coolify-generated proxy configuration is the sole Traefik route owner', async () => {
+  const compose = await readFile(composeUrl, 'utf8');
+  assert.doesNotMatch(compose, /^\s*labels:\s*$/m);
+  assert.doesNotMatch(compose, /traefik\./i);
 });

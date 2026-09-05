@@ -45,15 +45,6 @@ services:
     networks:
       - internal
       - coolify
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: coolify
-      traefik.http.routers.studio360.rule: Host(`${PUBLIC_DOMAIN:-studio360.hmz.one}`)
-      traefik.http.routers.studio360.entrypoints: https
-      traefik.http.routers.studio360.tls: "true"
-      traefik.http.routers.studio360.tls.certresolver: letsencrypt
-      traefik.http.services.studio360.loadbalancer.server.port: "1241"
-
 volumes:
   postgres_data:
     name: ${STUDIO360_POSTGRES_VOLUME:-studio360-local-postgres}
