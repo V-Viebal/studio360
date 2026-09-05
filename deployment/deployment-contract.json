@@ -19,9 +19,6 @@
       "COOLIFY_API_TOKEN"
     ]
   },
-  "promotion": {
-    "production_requires_successful_staging_same_revision": true
-  },
   "coolify": {
     "compose_location": "/compose.yaml",
     "custom_start_command": "bash scripts/coolify_ghcr_start.sh",
@@ -63,5 +60,10 @@
       "ports_exposes": 1241,
       "infisical_identity_variable": "INFISICAL_STAGING_IDENTITY_ID"
     }
-  ]
+  ],
+  "environment_execution": {
+    "mode": "independent",
+    "cross_environment_wait": false,
+    "cross_environment_failure_coupling": false
+  }
 }

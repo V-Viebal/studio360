@@ -42,6 +42,7 @@ jobs:
           bash -n scripts/coolify_registry_credentials.sh
           bash -n scripts/deploy_coolify_application.sh
           node --check scripts/reconcile_coolify_registry_credentials.mjs
+          node --test scripts/deployment_workflow_contract.test.mjs
           touch .env
           POSTGRES_PASSWORD=validation-only docker compose -f compose.yaml config -q
 
@@ -180,32 +181,6 @@ jobs:
           : "${INFISICAL_IDENTITY_ID:?Target Infisical OIDC identity is not configured}"
           : "${COOLIFY_APPLICATION_UUID:?Target Coolify Application is not configured}"
           [[ "${COOLIFY_APPLICATION_UUID}" != UNCONFIGURED_* ]] || { echo "Target Application is intentionally unconfigured." >&2; exit 1; }
-      - name: Require a green staging run for the same revision before production
-        if: github.ref_name == 'main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          WORKFLOW_PATH: .github/workflows/docker.yml
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          for attempt in $(seq 1 60); do
-            runs="$(curl --fail --silent --show-error \
-              --header "Accept: application/vnd.github+json" \
-              --header "Authorization: Bearer ${GH_TOKEN}" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=staging&head_sha=${GITHUB_SHA}&per_page=100")"
-            if jq -e --arg path "${WORKFLOW_PATH}" 'any(.workflow_runs[]; .path == $path and .status == "completed" and .conclusion == "success")' <<<"${runs}" >/dev/null; then
-              echo "Staging passed for ${GITHUB_SHA}; production promotion is allowed."
-              exit 0
-            fi
-            if [[ "${attempt}" -eq 60 ]]; then
-              echo "No successful staging run for ${GITHUB_SHA}; production is fail-closed." >&2
-              exit 1
-            fi
-            echo "Waiting for staging run ${attempt}/60 for ${GITHUB_SHA}."
-            sleep 10
-          done
-
       - name: Route Infisical and Coolify through verified origins
         shell: bash
         run: |
