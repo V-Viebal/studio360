@@ -88,14 +88,14 @@ set_release_sha() {
 
 wait_for_deployment() {
   local deployment_uuid="$1" label="$2" deployment state
-  for attempt in $(seq 1 90); do
+  for attempt in $(seq 1 240); do
     deployment="$(curl "${curl_args[@]}" "${auth_args[@]}" --header 'Accept: application/json' "${api_base}/deployments/${deployment_uuid}")"
     state="$(jq -r '.status // .deployment_status // .state // "unknown"' <<<"${deployment}" | tr '[:upper:]' '[:lower:]')"
     case "${state}" in
       finished|success|succeeded|completed|successful) echo "${label} deployment reached terminal success: ${state}"; return 0;;
       failed|error|cancelled|canceled|aborted|timeout|timed_out) echo "${label} deployment failed: ${state}" >&2; return 1;;
     esac
-    [[ "${attempt}" -lt 90 ]] || { echo "${label} deployment polling timed out." >&2; return 1; }
+    [[ "${attempt}" -lt 240 ]] || { echo "${label} deployment polling timed out." >&2; return 1; }
     sleep 5
   done
 }

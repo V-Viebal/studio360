@@ -75,3 +75,9 @@ test('direct Coolify redeploy reuses only an approved cached digest', async () =
   assert.match(body, /Approved image is not cached and no usable GHCR pull credential is available/);
   assert.match(body, /RELEASE_PULL_POLICY=never/);
 });
+
+test('Coolify queue polling retains credentials through normal contention', async () => {
+  const body = await readFile(new URL('../scripts/deploy_coolify_application.sh', import.meta.url), 'utf8');
+  assert.match(body, /for attempt in \x24\(seq 1 240\)/);
+  assert.match(body, /\[\[ \"\x24\{attempt\}\" -lt 240 \]\]/);
+});
