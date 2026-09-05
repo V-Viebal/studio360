@@ -30,6 +30,8 @@ test('production and staging workflows are independent', async () => {
   }
   assert.match(workflow, /branches:\s*\[main, staging\]/);
   assert.match(workflow, /group:\s*[^\n]*\$\{\{ github\.ref_name \}\}/);
+  assert.match(workflow, /test \"\$\{\{ github\.repository \}\}\"/);
+  assert.match(workflow, /needs\.deploy(?:_frontend|_backend)?\.result != 'skipped'/);
   assert.doesNotMatch(workflow, /runs-on:\s*\[?self-hosted/i);
   assert.equal([...workflow.matchAll(/^\s*runs-on:\s*ubuntu-latest\s*$/gm)].length, 4);
 });

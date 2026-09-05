@@ -30,9 +30,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test "${GITHUB_REPOSITORY}" = "V-Viebal/studio360"
+          test "${{ github.repository }}" = "V-Viebal/studio360"
           case "${GITHUB_REF}" in refs/heads/main|refs/heads/staging) ;; *) exit 1 ;; esac
-          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
           python3 -m compileall -q lib server scripts
       - name: Validate deployment scripts and Compose contract
         shell: bash
@@ -175,9 +175,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test "${GITHUB_REPOSITORY}" = "V-Viebal/studio360"
-          case "${GITHUB_REF}" in refs/heads/main|refs/heads/staging) ;; *) echo "Unsupported release ref." >&2; exit 1 ;; esac
-          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "${{ github.repository }}" = "V-Viebal/studio360"
+          case "${{ github.ref_name }}" in main|staging) ;; *) echo "Unsupported release ref." >&2; exit 1 ;; esac
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
           : "${INFISICAL_IDENTITY_ID:?Target Infisical OIDC identity is not configured}"
           : "${COOLIFY_APPLICATION_UUID:?Target Coolify Application is not configured}"
           [[ "${COOLIFY_APPLICATION_UUID}" != UNCONFIGURED_* ]] || { echo "Target Application is intentionally unconfigured." >&2; exit 1; }
@@ -238,7 +238,7 @@ jobs:
 
   registry_credentials_cleanup:
     name: Independently clear temporary GHCR credentials
-    if: ${{ always() }}
+    if: ${{ always() && needs.deploy.result != 'skipped' }}
     needs: [build, deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 15
