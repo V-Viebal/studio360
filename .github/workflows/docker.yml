@@ -155,12 +155,12 @@ jobs:
       COOLIFY_SERVER_UUID: rejddmxzsu85aiq1zqnt48wr
       COOLIFY_APPLICATION_UUID: ${{ github.ref_name == 'main' && (vars.STUDIO360_PRODUCTION_APPLICATION_UUID || '5mvkdfjxuh6uko7brzhqxnp1') || (vars.STUDIO360_STAGING_APPLICATION_UUID || 'htortr9hw2g9ifpeh8p76ner') }}
       COOLIFY_APPLICATION_NAME: ${{ github.ref_name == 'main' && 'studio360-production' || 'studio360-staging' }}
-      COOLIFY_PUBLIC_DOMAIN: ${{ github.ref_name == 'main' && 'studio360.hmz.one' || 'studio360-staging.4th.hmz.one' }}
+      COOLIFY_PUBLIC_DOMAIN: ${{ github.ref_name == 'main' && 'studio360.hmz.one' || 'studio360-staging.hmz.one' }}
       COOLIFY_GIT_BRANCH: ${{ github.ref_name }}
       COOLIFY_GIT_REPOSITORY: V-Viebal/studio360
       COOLIFY_COMPOSE_LOCATION: /compose.yaml
       COOLIFY_PORTS_EXPOSES: "1241"
-      HEALTH_URL: ${{ github.ref_name == 'main' && 'https://studio360.hmz.one/health' || 'https://studio360-staging.4th.hmz.one/health' }}
+      HEALTH_URL: ${{ github.ref_name == 'main' && 'https://studio360.hmz.one/health' || 'https://studio360-staging.hmz.one/health' }}
       HEALTH_EXPECTED_REGEX: status
       COMPOSE_PROJECT_NAME: studio360-${{ github.ref_name }}
     steps:
@@ -258,7 +258,7 @@ jobs:
       COOLIFY_SERVER_UUID: rejddmxzsu85aiq1zqnt48wr
       COOLIFY_APPLICATION_UUID: ${{ github.ref_name == 'main' && (vars.STUDIO360_PRODUCTION_APPLICATION_UUID || '5mvkdfjxuh6uko7brzhqxnp1') || (vars.STUDIO360_STAGING_APPLICATION_UUID || 'htortr9hw2g9ifpeh8p76ner') }}
       COOLIFY_APPLICATION_NAME: ${{ github.ref_name == 'main' && 'studio360-production' || 'studio360-staging' }}
-      COOLIFY_PUBLIC_DOMAIN: ${{ github.ref_name == 'main' && 'studio360.hmz.one' || 'studio360-staging.4th.hmz.one' }}
+      COOLIFY_PUBLIC_DOMAIN: ${{ github.ref_name == 'main' && 'studio360.hmz.one' || 'studio360-staging.hmz.one' }}
       COOLIFY_GIT_BRANCH: ${{ github.ref_name }}
       COOLIFY_GIT_REPOSITORY: V-Viebal/studio360
     steps:

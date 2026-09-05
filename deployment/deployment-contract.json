@@ -56,7 +56,7 @@
       "application_variable": "STUDIO360_STAGING_APPLICATION_UUID",
       "application_uuid": "htortr9hw2g9ifpeh8p76ner",
       "application_name": "studio360-staging",
-      "domain": "studio360-staging.4th.hmz.one",
+      "domain": "studio360-staging.hmz.one",
       "ports_exposes": 1241,
       "infisical_identity_variable": "INFISICAL_STAGING_IDENTITY_ID"
     }
