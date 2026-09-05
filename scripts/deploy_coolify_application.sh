@@ -108,6 +108,20 @@ queue_deployment() {
   printf '%s' "${deployment_uuid}"
 }
 
+verify_application_runtime() {
+  local application status
+  for attempt in $(seq 1 60); do
+    application="$(get_application)"
+    status="$(jq -r '.status // "unknown"' <<<"${application}" | tr '[:upper:]' '[:lower:]')"
+    case "${status}" in
+      running|running:healthy|running:unknown) return 0 ;;
+      *unhealthy*|exited*|stopped*|dead*|failed*|error*) ;;
+    esac
+    [[ "${attempt}" -lt 60 ]] || { echo "Coolify Application runtime did not become healthy/running: ${status}" >&2; return 1; }
+    sleep 5
+  done
+}
+
 url_with_release_query() { local url="$1" sep='?'; [[ "${url}" == *\?* ]] && sep='&'; printf '%s%s__release=%s' "${url}" "${sep}" "${RELEASE_SHA:0:12}"; }
 verify_health() {
   local health_body marker_body health_url marker_url
@@ -164,6 +178,7 @@ set_release_sha "${RELEASE_SHA}"
 deployment_uuid="$(queue_deployment)"
 printf 'deployment_uuid=%s\n' "${deployment_uuid}" >>"${GITHUB_OUTPUT:-/dev/null}"
 wait_for_deployment "${deployment_uuid}" Release
+verify_application_runtime
 verify_health || { echo "Public/application health or release verification failed." >&2; exit 1; }
 deployment_succeeded=true
 echo "Exact-digest Coolify release verified."

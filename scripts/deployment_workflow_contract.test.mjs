@@ -81,3 +81,10 @@ test('Coolify queue polling retains credentials through normal contention', asyn
   assert.match(body, /for attempt in \x24\(seq 1 240\)/);
   assert.match(body, /\[\[ \"\x24\{attempt\}\" -lt 240 \]\]/);
 });
+
+test('deployment rejects a terminal success with an unhealthy Application runtime', async () => {
+  const body = await readFile(new URL('../scripts/deploy_coolify_application.sh', import.meta.url), 'utf8');
+  assert.match(body, /verify_application_runtime/);
+  assert.match(body, /running:healthy\|running:unknown/);
+  assert.match(body, /\*unhealthy\*\|exited\*/);
+});
