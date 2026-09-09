@@ -17,7 +17,12 @@
     "coolify_keys": [
       "COOLIFY_URL",
       "COOLIFY_API_TOKEN"
-    ]
+    ],
+    "legacy_secret_path": "/github-actions",
+    "secret_paths": {
+      "production": "/github-actions",
+      "staging": "/deploy/github-actions"
+    }
   },
   "coolify": {
     "compose_location": "/compose.yaml",

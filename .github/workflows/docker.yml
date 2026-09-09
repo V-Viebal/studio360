@@ -145,7 +145,7 @@ jobs:
       INFISICAL_PROJECT_SLUG: studio360-i-cn-8
       INFISICAL_ENV_SLUG: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
       INFISICAL_IDENTITY_ID: ${{ github.ref_name == 'main' && (vars.INFISICAL_PRODUCTION_IDENTITY_ID || '2a377305-f516-4d0f-a9a7-7eec3fac01e4') || (vars.INFISICAL_STAGING_IDENTITY_ID || '264338aa-530f-46e5-9d73-cb31b1006c05') }}
-      INFISICAL_SECRET_PATH: /github-actions
+      INFISICAL_SECRET_PATH: ${{ github.ref_name == 'main' && '/github-actions' || '/deploy/github-actions' }}
       INFISICAL_ORIGIN_IP: 142.91.101.5
       COOLIFY_ORIGIN_IP: 142.91.101.5
       COOLIFY_PROJECT_UUID: m11b6voah95haymnyc6oyjeh
@@ -248,7 +248,7 @@ jobs:
       INFISICAL_PROJECT_SLUG: studio360-i-cn-8
       INFISICAL_ENV_SLUG: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
       INFISICAL_IDENTITY_ID: ${{ github.ref_name == 'main' && (vars.INFISICAL_PRODUCTION_IDENTITY_ID || '2a377305-f516-4d0f-a9a7-7eec3fac01e4') || (vars.INFISICAL_STAGING_IDENTITY_ID || '264338aa-530f-46e5-9d73-cb31b1006c05') }}
-      INFISICAL_SECRET_PATH: /github-actions
+      INFISICAL_SECRET_PATH: ${{ github.ref_name == 'main' && '/github-actions' || '/deploy/github-actions' }}
       INFISICAL_ORIGIN_IP: 142.91.101.5
       COOLIFY_ORIGIN_IP: 142.91.101.5
       COOLIFY_PROJECT_UUID: m11b6voah95haymnyc6oyjeh
