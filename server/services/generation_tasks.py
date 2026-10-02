@@ -1698,4 +1698,15 @@ async def execute_generation_task(task: dict[str, Any]) -> dict[str, Any]:
             resource_id=resource_id,
             payload=payload,
         )
+        if task_type == "video":
+            # Compose and channel notification run out-of-band. The worker
+            # records this segment as succeeded immediately, so a long ffmpeg
+            # pass cannot consume an agent turn or hit its ReAct iteration cap.
+            from server.services.auto_compose import schedule_auto_compose
+
+            await schedule_auto_compose(
+                project_name,
+                str(payload.get("script_file") or task.get("script_file") or ""),
+                task_id=queue_task_id,
+            )
         return result
