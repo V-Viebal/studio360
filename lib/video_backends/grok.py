@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import logging
 from datetime import timedelta
 from pathlib import Path
+
+import httpx
 
 from lib.db.repositories.usage_repo import MAX_BILLED_DURATION_SECONDS
 from lib.grok_shared import create_grok_client, grok_should_retry
@@ -144,3 +147,139 @@ class GrokVideoBackend:
         logger.info("Grok 视频生成开始: model=%s, duration=%ds", self._model, request.duration_seconds)
         logger.info("调用 %s 视频 SDK kwargs=%s", self.name, format_kwargs_for_log(generate_kwargs))
         return await self._client.video.generate(**generate_kwargs)
+
+
+class LLM360GrokVideoBackend:
+    """Grok Imagine video through an LLM360 OpenAI-compatible node.
+
+    LLM360 exposes xAI's video contract on ``/v1/videos/generations`` and
+    ``/v1/videos/retrieve`` while keeping the provider credential inside the
+    node.  Studio360 must therefore send the node API key, not an xAI OAuth
+    token, and must not instantiate the native xAI SDK for this route.
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
+    ):
+        if not api_key or not api_key.strip():
+            raise ValueError("LLM360GrokVideoBackend requires an LLM360 node API key")
+        if not base_url or not base_url.strip():
+            raise ValueError("LLM360GrokVideoBackend requires an LLM360 node base_url")
+        normalized = base_url.strip().rstrip("/")
+        if not normalized.endswith("/v1"):
+            normalized = f"{normalized}/v1"
+        self._base_url = normalized
+        self._api_key = api_key.strip()
+        self._model = model or "grok-imagine-video"
+        self._capabilities: set[VideoCapability] = {
+            VideoCapability.TEXT_TO_VIDEO,
+            VideoCapability.IMAGE_TO_VIDEO,
+        }
+
+    @property
+    def name(self) -> str:
+        return "llm360-grok"
+
+    @property
+    def model(self) -> str:
+        return self._model
+
+    @property
+    def capabilities(self) -> set[VideoCapability]:
+        return self._capabilities
+
+    @property
+    def video_capabilities(self) -> VideoCapabilities:
+        return VideoCapabilities(
+            reference_images=True,
+            max_reference_images=1,
+            reference_images_with_start_frame=False,
+        )
+
+    async def generate(self, request: VideoGenerationRequest) -> VideoGenerationResult:
+        payload: dict[str, object] = {
+            "model": self._model,
+            "prompt": request.prompt,
+            "duration": request.duration_seconds,
+            "aspect_ratio": request.aspect_ratio,
+        }
+        if request.resolution is not None:
+            payload["resolution"] = request.resolution
+        if request.seed is not None:
+            payload["seed"] = request.seed
+
+        if request.start_image and Path(request.start_image).exists():
+            image_path = Path(request.start_image)
+            mime_type = IMAGE_MIME_TYPES.get(image_path.suffix.lower(), "image/png")
+            encoded = await asyncio.to_thread(
+                lambda: base64.b64encode(image_path.read_bytes()).decode("ascii")
+            )
+            payload["image"] = f"data:{mime_type};base64,{encoded}"
+
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        timeout = httpx.Timeout(connect=30.0, read=120.0, write=120.0, pool=30.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/videos/generations",
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            submitted = response.json()
+            request_id = str(submitted.get("request_id") or submitted.get("id") or "").strip()
+            if not request_id:
+                raise RuntimeError(
+                    f"LLM360 video submission returned no request_id: {json.dumps(submitted)[:500]}"
+                )
+
+            max_wait = max(600.0, float(request.duration_seconds) * 30.0)
+            deadline = asyncio.get_running_loop().time() + max_wait
+            final = submitted
+            while asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(5.0)
+                poll = await client.post(
+                    f"{self._base_url}/videos/retrieve",
+                    headers=headers,
+                    json={"model": self._model, "request_id": request_id},
+                )
+                poll.raise_for_status()
+                final = poll.json()
+                status = str(final.get("status") or "").lower()
+                if status in {"done", "completed", "succeeded", "success"}:
+                    break
+                if status in {"failed", "expired", "error", "canceled", "cancelled"}:
+                    raise RuntimeError(
+                        f"LLM360 video generation failed ({status}): "
+                        f"{json.dumps(final)[:700]}"
+                    )
+            else:
+                raise TimeoutError(f"LLM360 video generation timed out: {request_id}")
+
+            video = final.get("video") if isinstance(final, dict) else None
+            video_url = video.get("url") if isinstance(video, dict) else None
+            if not isinstance(video_url, str) or not video_url.strip():
+                raise RuntimeError(
+                    f"LLM360 video completed without video.url: {json.dumps(final)[:700]}"
+                )
+
+            download = await client.get(video_url, headers={"Accept": "video/mp4"})
+            download.raise_for_status()
+            request.output_path.parent.mkdir(parents=True, exist_ok=True)
+            request.output_path.write_bytes(download.content)
+
+        return VideoGenerationResult(
+            video_path=request.output_path,
+            provider="llm360-grok",
+            model=self._model,
+            duration_seconds=request.duration_seconds,
+            video_uri=video_url,
+            generate_audio=True,
+        )
