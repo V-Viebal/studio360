@@ -17,6 +17,8 @@ from server.auth import (
     check_credentials,
     create_token,
     is_auth_enabled,
+    is_logto_configured,
+    logto_configuration_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,10 @@ class VerifyResponse(BaseModel):
 
 class AuthStatusResponse(BaseModel):
     enabled: bool
+    mode: str = "legacy"
+    provider: str = "local"
+    logto_configured: bool = False
+    login_url: str = "/login"
 
 
 # ==================== 路由 ====================
@@ -53,7 +59,17 @@ async def auth_status():
     登录链路。本接口本身**不要求认证**——一个 boolean 比 401 探针更直观，
     且实际"是否需要登录"通过 401/200 也能从外部观察到，因此不增量泄露。
     """
-    return AuthStatusResponse(enabled=is_auth_enabled())
+    configuration_error = logto_configuration_error()
+    mode = "logto" if is_logto_configured() and configuration_error is None else (
+        "misconfigured" if configuration_error else "legacy"
+    )
+    return AuthStatusResponse(
+        enabled=is_auth_enabled(),
+        mode=mode,
+        provider="logto" if mode == "logto" else "local",
+        logto_configured=mode == "logto",
+        login_url="/login",
+    )
 
 
 @router.post("/auth/token", response_model=TokenResponse)
@@ -67,6 +83,12 @@ async def login_for_access_token(
     ``AUTH_ENABLED=false`` 时跳过凭据校验，直接签发 token，让前端
     LoginPage 即便被打开也能正常跳转主界面。
     """
+    if is_logto_configured():
+        error = logto_configuration_error()
+        if error:
+            raise HTTPException(status_code=503, detail="Logto authentication is misconfigured.")
+        raise HTTPException(status_code=410, detail="Local password login is disabled; use Logto SSO.")
+
     if is_auth_enabled() and not check_credentials(form_data.username, form_data.password):
         logger.warning("登录失败: 用户名或密码错误 (用户: %s)", form_data.username)
         raise HTTPException(

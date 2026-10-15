@@ -12,7 +12,7 @@ import type { ComponentType } from "react";
 export const PROVIDER_NAMES: Record<string, string> = {
   "gemini-aistudio": "AI Studio",
   "gemini-vertex": "Vertex AI",
-  ark: "火山方舟",
+  ark: "Volcengine Ark",
   grok: "Grok",
   openai: "OpenAI",
   vidu: "Vidu",

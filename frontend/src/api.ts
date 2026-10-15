@@ -64,7 +64,7 @@ import type {
   TestConnectionResponse,
   UpdateAgentCredentialRequest,
 } from "@/types/agent-credential";
-import { getToken, clearToken } from "@/utils/auth";
+import { getToken, clearToken, withAuthQuery as withAuthResourceQuery } from "@/utils/auth";
 import i18n from "./i18n";
 
 // ==================== Helper types ====================
@@ -302,7 +302,7 @@ function handleUnauthorized(response: Response): void {
   globalThis.location.href = current.startsWith("/app/")
     ? `/login?from=${encodeURIComponent(current)}`
     : "/login";
-  throw new Error("认证已过期，请重新登录");
+  throw new Error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
 }
 
 /** 为 fetch options 注入 Authorization header */
@@ -347,7 +347,7 @@ class API {
       const error = await response
         .json()
         .catch(() => ({ detail: response.statusText })) as ErrorResponse;
-      let message = "请求失败";
+      let message = "Yêu cầu thất bại";
       if (typeof error.detail === "string") {
         message = error.detail;
       } else if (Array.isArray(error.detail) && error.detail.length > 0) {
@@ -425,7 +425,7 @@ class API {
     updates: Partial<ProjectData> & { clear_style_image?: boolean }
   ): Promise<{ success: boolean; project: ProjectData }> {
     if ("content_mode" in updates) {
-      throw new Error("项目创建后不支持修改 content_mode");
+      throw new Error("Không hỗ trợ thay đổi content_mode sau khi dự án đã tạo.");
     }
     return this.request(`/projects/${encodeURIComponent(name)}`, {
       method: "PATCH",
@@ -517,7 +517,7 @@ class API {
         .json()
         .catch(() => ({ detail: response.statusText, errors: [], warnings: [] })) as ImportErrorPayload;
       const error = new Error(
-        typeof payload.detail === "string" ? payload.detail : "导入失败"
+        typeof payload.detail === "string" ? payload.detail : "Nhập thất bại"
       ) as Error & {
         status?: number;
         detail?: string;
@@ -527,7 +527,7 @@ class API {
         diagnostics?: ImportFailureDiagnostics;
       };
       error.status = response.status;
-      error.detail = typeof payload.detail === "string" ? payload.detail : "导入失败";
+      error.detail = typeof payload.detail === "string" ? payload.detail : "Nhập thất bại";
       error.errors = Array.isArray(payload.errors) ? payload.errors : [];
       error.warnings = Array.isArray(payload.warnings) ? payload.warnings : [];
       if (typeof payload.conflict_project_name === "string") {
@@ -897,7 +897,7 @@ class API {
       // 若 detail 缺字段则视为协议异常，抛通用错误（带文件名标识）而非手搓 fallback —
       // 避免前端"猜"一个可能与后端命名规则不一致的 suggested_name 误导用户
       if (!detail?.existing || !detail?.suggested_name) {
-        throw new Error(`上传 "${file.name}" 失败：服务端返回 409 但 detail 字段不完整`);
+        throw new Error(`Tải lên "${file.name}" thất bại: Máy chủ trả về 409 nhưng thiếu thông tin detail`);
       }
       throw new ConflictError(
         detail.existing,
@@ -906,7 +906,7 @@ class API {
       );
     }
 
-    await throwIfNotOk(response, "上传失败");
+    await throwIfNotOk(response, "Tải lên thất bại");
     return (await response.json()) as {
       success: boolean;
       path: string;
@@ -925,7 +925,7 @@ class API {
     const formData = new FormData();
     formData.append("file", file);
     const response = await fetch(`${API_BASE}${url}`, withAuth({ method: "POST", body: formData }));
-    await throwIfNotOk(response, "上传失败");
+    await throwIfNotOk(response, "Tải lên thất bại");
     return (await response.json()) as T;
   }
 
@@ -980,11 +980,10 @@ class API {
     cacheBust?: number | string | null
   ): string {
     const base = `${API_BASE}/files/${encodeURIComponent(projectName)}/${path}`;
-    if (cacheBust == null || cacheBust === "") {
-      return base;
-    }
-
-    return `${base}?v=${encodeURIComponent(String(cacheBust))}`;
+    const url = cacheBust == null || cacheBust === ""
+      ? base
+      : `${base}?v=${encodeURIComponent(String(cacheBust))}`;
+    return withAuthResourceQuery(url);
   }
 
   // ==================== Source 文件管理 ====================
@@ -1000,7 +999,7 @@ class API {
       `${API_BASE}/projects/${encodeURIComponent(projectName)}/source/${encodeURIComponent(filename)}`,
       withAuth()
     );
-    await throwIfNotOk(response, "获取文件内容失败");
+    await throwIfNotOk(response, "Lấy nội dung tệp thất bại");
     return response.text();
   }
 
@@ -1020,7 +1019,7 @@ class API {
         body: content,
       })
     );
-    await throwIfNotOk(response, "保存文件失败");
+    await throwIfNotOk(response, "Lưu tệp thất bại");
     return response.json() as Promise<SuccessResponse>;
   }
 
@@ -1037,7 +1036,7 @@ class API {
         method: "DELETE",
       })
     );
-    await throwIfNotOk(response, "删除文件失败");
+    await throwIfNotOk(response, "Xóa tệp thất bại");
     return response.json() as Promise<SuccessResponse>;
   }
 
@@ -1066,7 +1065,7 @@ class API {
       `${API_BASE}/projects/${encodeURIComponent(projectName)}/drafts/${episode}/step${stepNum}`,
       withAuth()
     );
-    await throwIfNotOk(response, "获取草稿内容失败");
+    await throwIfNotOk(response, "Lấy nội dung bản nháp thất bại");
     return response.text();
   }
 
@@ -1087,7 +1086,7 @@ class API {
         body: content,
       })
     );
-    await throwIfNotOk(response, "保存草稿失败");
+    await throwIfNotOk(response, "Lưu bản nháp thất bại");
     return response.json() as Promise<SuccessResponse>;
   }
 
@@ -1425,7 +1424,7 @@ class API {
       try {
         return JSON.parse((event.data as string) || "{}");
       } catch (err) {
-        console.error("解析 SSE 数据失败:", err, event.data);
+        console.error("Phân tích dữ liệu SSE thất bại:", err, event.data);
         return null;
       }
     };
@@ -1469,7 +1468,7 @@ class API {
       try {
         return JSON.parse((event.data as string) || "{}");
       } catch (err) {
-        console.error("解析项目事件 SSE 数据失败:", err, event.data);
+        console.error("Phân tích dữ liệu sự kiện dự án SSE thất bại:", err, event.data);
         return null;
       }
     };
@@ -1571,7 +1570,7 @@ class API {
       })
     );
 
-    await throwIfNotOk(response, "上传失败");
+    await throwIfNotOk(response, "Tải lên thất bại");
 
     return response.json() as Promise<{ success: boolean; style_image: string; style_description: string; url: string }>;
   }
@@ -1836,7 +1835,7 @@ class API {
       `${API_BASE}/providers/gemini-vertex/credentials/upload?name=${encodeURIComponent(name)}`,
       withAuth({ method: "POST", body: formData }),
     );
-    await throwIfNotOk(response, "上传凭证失败");
+    await throwIfNotOk(response, "Tải lên chứng thực thất bại");
     return response.json() as Promise<ProviderCredential>;
   }
 
@@ -2067,7 +2066,7 @@ class API {
       const error = (await response.json().catch(() => ({ detail: response.statusText }))) as {
         detail?: string;
       };
-      throw new Error(typeof error.detail === "string" ? error.detail : "请求失败");
+      throw new Error(typeof error.detail === "string" ? error.detail : "Yêu cầu thất bại");
     }
     return response.json() as Promise<{ asset: Asset }>;
   }
@@ -2089,7 +2088,7 @@ class API {
       const error = (await response.json().catch(() => ({ detail: response.statusText }))) as {
         detail?: string;
       };
-      throw new Error(typeof error.detail === "string" ? error.detail : "请求失败");
+      throw new Error(typeof error.detail === "string" ? error.detail : "Yêu cầu thất bại");
     }
     return response.json() as Promise<{ asset: Asset }>;
   }
@@ -2133,7 +2132,7 @@ class API {
     const type = parts[1];
     const filename = parts.slice(2).join("/");
     const qs = fp ? `?fp=${encodeURIComponent(fp)}` : "";
-    return `${API_BASE}/global-assets/${type}/${filename}${qs}`;
+    return withAuthResourceQuery(`${API_BASE}/global-assets/${type}/${filename}${qs}`);
   }
 
   // ==================== Reference-to-Video API ====================

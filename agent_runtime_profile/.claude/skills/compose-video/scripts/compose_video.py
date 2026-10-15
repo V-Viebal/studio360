@@ -387,9 +387,79 @@ def concatenate_simple(video_paths: list, output_path: Path):
 
 
 _XFADE_TYPE_MAP: dict[str, str] = {
+    # Standard Dissolve & Fade
     "fade": "fade",
     "dissolve": "dissolve",
+    "crossfade": "dissolve",
+    "fadeblack": "fadeblack",
+    "fadewhite": "fadewhite",
+    "fadegrays": "fadegrays",
+    "fadefast": "fadefast",
+    "fadeslow": "fadeslow",
+
+    # Wipes
     "wipe": "wipeleft",
+    "wipeleft": "wipeleft",
+    "wiperight": "wiperight",
+    "wipeup": "wipeup",
+    "wipedown": "wipedown",
+    "wipetl": "wipetl",
+    "wipetr": "wipetr",
+    "wipebl": "wipebl",
+    "wipebr": "wipebr",
+
+    # Slides & Pushes
+    "slideleft": "slideleft",
+    "slideright": "slideright",
+    "slideup": "slideup",
+    "slidedown": "slidedown",
+    "smoothleft": "smoothleft",
+    "smoothright": "smoothright",
+    "smoothup": "smoothup",
+    "smoothdown": "smoothdown",
+
+    # Covers & Reveals
+    "coverleft": "coverleft",
+    "coverright": "coverright",
+    "coverup": "coverup",
+    "coverdown": "coverdown",
+    "revealleft": "revealleft",
+    "revealright": "revealright",
+    "revealup": "revealup",
+    "revealdown": "revealdown",
+
+    # Squeezes & Slices
+    "squeezeh": "squeezeh",
+    "squeezev": "squeezev",
+    "hlslice": "hlslice",
+    "hrslice": "hrslice",
+    "vuslice": "vuslice",
+    "vdslice": "vdslice",
+    "diagtl": "diagtl",
+    "diagtr": "diagtr",
+    "diagbl": "diagbl",
+    "diagbr": "diagbr",
+
+    # Winds
+    "hlwind": "hlwind",
+    "hrwind": "hrwind",
+    "vuwind": "vuwind",
+    "vdwind": "vdwind",
+
+    # Cinematic Shapes, Zooms & Blurs
+    "circlecrop": "circlecrop",
+    "circleopen": "circleopen",
+    "circleclose": "circleclose",
+    "rectcrop": "rectcrop",
+    "distance": "distance",
+    "radial": "radial",
+    "zoomin": "zoomin",
+    "hblur": "hblur",
+    "pixelize": "pixelize",
+    "vertopen": "vertopen",
+    "vertclose": "vertclose",
+    "horzopen": "horzopen",
+    "horzclose": "horzclose",
 }
 
 
@@ -592,7 +662,7 @@ def add_background_music(video_path: Path, music_path: Path, output_path: Path, 
 
 
 def compose_video(
-    script_filename: str, output_filename: str = None, music_path: str = None, use_transitions: bool = True
+    script_filename: str, output_filename: str = None, music_path: str = None, use_transitions: bool = True, transition_duration: float = 0.5
 ) -> Path:
     """
     合成最终视频
@@ -611,24 +681,25 @@ def compose_video(
     # 加载剧本（pm.load_script 内部已用 _safe_subpath 过滤 ../ 等逃逸尝试）
     script = pm.load_script(project_name, script_filename)
 
-    # 仅支持 drama 模式（顶层 scenes[]）；narration/ad/reference_video 给友好错误
-    if "scenes" not in script:
+    # Hỗ trợ cả drama (scenes[]) và narration / storyboard (segments[])
+    items = script.get("scenes") or script.get("segments")
+    if not items:
         content_mode = script.get("content_mode") or "unknown"
         generation_mode = script.get("generation_mode") or "storyboard"
         raise RuntimeError(
-            f"compose_video.py 目前仅支持 drama 模式（剧本顶层需有 scenes[]）；"
-            f"当前剧本 content_mode={content_mode}, generation_mode={generation_mode}，"
-            "请使用 Web 端剪映草稿导出"
+            f"compose_video.py không tìm thấy danh sách cảnh (scenes[] hoặc segments[]); "
+            f"content_mode={content_mode}, generation_mode={generation_mode}"
         )
 
     # 收集视频片段
     video_paths = []
     transitions = []
 
-    for scene in script["scenes"]:
-        video_clip = scene.get("generated_assets", {}).get("video_clip")
+    for item in items:
+        item_id = item.get("scene_id") or item.get("segment_id") or "unknown"
+        video_clip = item.get("generated_assets", {}).get("video_clip")
         if not video_clip:
-            raise ValueError(f"场景 {scene['scene_id']} 缺少视频片段")
+            raise ValueError(f"Phân đoạn {item_id} thiếu video clip (chưa generate xong)")
 
         # 与 --music / output 同样的围栏：剧本里 video_clip 写成绝对路径或 ../
         # 形式时，未 resolve 的 `project_dir / video_clip` 会落到项目外（且字面
@@ -641,7 +712,7 @@ def compose_video(
             raise FileNotFoundError(f"视频文件不存在或不是普通文件: {video_path}")
 
         video_paths.append(video_path)
-        transitions.append(scene.get("transition_to_next", "cut"))
+        transitions.append(item.get("transition_to_next") or item.get("transition") or ("dissolve" if use_transitions else "cut"))
 
     if not video_paths:
         raise ValueError("没有可用的视频片段")
@@ -681,7 +752,7 @@ def compose_video(
     print("🎬 正在合成视频...")
 
     if use_transitions and any(t != "cut" for t in transitions):
-        concatenate_with_transitions(video_paths, transitions, output_path)
+        concatenate_with_transitions(video_paths, transitions, output_path, transition_duration=transition_duration)
     else:
         concatenate_simple(video_paths, output_path)
 
@@ -704,6 +775,7 @@ def main():
     parser.add_argument("--output", help="输出文件名")
     parser.add_argument("--music", help="背景音乐文件")
     parser.add_argument("--no-transitions", action="store_true", help="不使用转场效果")
+    parser.add_argument("--transition-duration", type=float, default=0.5, help="转场时长（秒），默认 0.5s")
 
     args = parser.parse_args()
 
@@ -715,7 +787,7 @@ def main():
         sys.exit(1)
 
     try:
-        output_path = compose_video(args.script, args.output, args.music, use_transitions=not args.no_transitions)
+        output_path = compose_video(args.script, args.output, args.music, use_transitions=not args.no_transitions, transition_duration=args.transition_duration)
 
         print(f"\n🎉 最终视频: {output_path}")
         print("   单独片段保留在: videos/")

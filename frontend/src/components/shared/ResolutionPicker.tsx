@@ -16,7 +16,7 @@ export function ResolutionPicker({
   options,
   value,
   onChange,
-  placeholder = "默认（不传）",
+  placeholder = "Mặc định (tự động)",
   disabled,
   "aria-label": ariaLabel,
 }: ResolutionPickerProps) {

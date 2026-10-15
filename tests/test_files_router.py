@@ -1,12 +1,14 @@
 import json
+import os
 from io import BytesIO
+from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from lib.project_manager import ProjectManager
-from server.auth import CurrentUserInfo, get_current_user
+from server.auth import CurrentUserInfo, get_current_user, get_current_user_flexible
 from server.routers import files
 
 
@@ -53,11 +55,29 @@ def _client(monkeypatch, tmp_path):
 
     app = FastAPI()
     app.dependency_overrides[get_current_user] = lambda: CurrentUserInfo(id="default", sub="testuser", role="admin")
+    app.dependency_overrides[get_current_user_flexible] = lambda: CurrentUserInfo(
+        id="default", sub="testuser", role="admin"
+    )
     app.include_router(files.router, prefix="/api/v1")
     return TestClient(app), pm
 
 
 class TestFilesRouter:
+    def test_file_endpoints_require_authentication(self, tmp_path, monkeypatch):
+        pm = ProjectManager(tmp_path / "projects")
+        pm.create_project("demo")
+        source = pm.get_project_path("demo") / "source"
+        source.mkdir(parents=True, exist_ok=True)
+        (source / "private.txt").write_text("private", encoding="utf-8")
+        monkeypatch.setattr(files, "get_project_manager", lambda: pm)
+
+        app = FastAPI()
+        app.include_router(files.router, prefix="/api/v1")
+        with patch.dict(os.environ, {"AUTH_ENABLED": "true"}, clear=False):
+            with TestClient(app) as client:
+                response = client.get("/api/v1/files/demo/source/private.txt")
+        assert response.status_code == 401
+
     def test_source_and_file_endpoints(self, tmp_path, monkeypatch):
         client, _ = _client(monkeypatch, tmp_path)
 

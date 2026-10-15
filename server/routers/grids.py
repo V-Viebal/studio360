@@ -253,7 +253,7 @@ async def get_grid(project_name: str, grid_id: str, _user: CurrentUser, _t: Tran
         gm = GridManager(project_path)
         grid = gm.get(grid_id)
         if grid is None:
-            raise HTTPException(status_code=404, detail=f"Grid {grid_id} 不存在")
+            raise HTTPException(status_code=404, detail=f"Grid {grid_id} không tồn tại")
         return grid.to_dict()
     except HTTPException:
         raise
@@ -280,7 +280,7 @@ async def regenerate_grid(project_name: str, grid_id: str, _user: CurrentUser, _
         gm = GridManager(project_path)
         grid = gm.get(grid_id)
         if grid is None:
-            raise HTTPException(status_code=404, detail=f"Grid {grid_id} 不存在")
+            raise HTTPException(status_code=404, detail=f"Grid {grid_id} không tồn tại")
 
         grid.status = "pending"
         grid.error_message = None

@@ -49,10 +49,10 @@ def patch_episode_meta_tool(ctx: ToolContext):
             script_filename = validate_script_filename(args["script"])
             field = str(args["field"])
             if field not in _META_WHITELIST:
-                raise ValueError(f"field {field!r} 不在白名单 {list(_META_WHITELIST)} 内")
+                raise ValueError(f"field {field!r} không nằm trong danh sách cho phép (whitelist) {list(_META_WHITELIST)} 内")
             value = args["value"]
             if not isinstance(value, str) or not value.strip():
-                raise ValueError(f"{field} 必须是非空字符串")
+                raise ValueError(f"{field} phải là chuỗi ký tự không rỗng")
             new_value = value.strip()
             with ctx.pm.locked_script(ctx.project_name, script_filename) as script:
                 script[field] = new_value

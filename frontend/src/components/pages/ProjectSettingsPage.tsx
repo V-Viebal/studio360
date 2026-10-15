@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { API } from "@/api";
+import { withAuthQuery } from "@/utils/auth";
 import { useAppStore } from "@/stores/app-store";
 import { PROVIDER_NAMES } from "@/components/ui/ProviderIcon";
 import { getProviderModels, getCustomProviderModels } from "@/utils/provider-models";
@@ -28,7 +29,7 @@ function deriveStyleValue(project: Record<string, unknown>, projectName: string)
       templateId: null,
       activeCategory: "live",
       uploadedFile: null,
-      uploadedPreview: `/api/v1/files/${encodeURIComponent(projectName)}/${styleImage}`,
+      uploadedPreview: withAuthQuery(`/api/v1/files/${encodeURIComponent(projectName)}/${styleImage}`),
     };
   }
   const effectiveId = templateId ?? DEFAULT_TEMPLATE_ID;

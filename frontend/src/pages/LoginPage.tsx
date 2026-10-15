@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { useAutoFocus } from "@/hooks/useAutoFocus";
 import { errMsg, voidPromise } from "@/utils/async";
@@ -6,6 +6,11 @@ import { useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/auth-store";
 import { safeReturnPath } from "@/utils/safe-url";
+import {
+  getPostLogtoLoginPath,
+  isLogtoConfigured,
+  isLogtoPartiallyConfigured,
+} from "@/utils/auth";
 import { BRAND } from "@/branding";
 import type { LoginResponse, ErrorResponse } from "@/api";
 import { FieldLabel } from "@/components/ui/FieldLabel";
@@ -30,7 +35,24 @@ export function LoginPage() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const login = useAuthStore((s) => s.login);
+  const loginWithLogto = useAuthStore((s) => s.loginWithLogto);
+  const completeLogtoCallback = useAuthStore((s) => s.completeLogtoCallback);
   const usernameRef = useAutoFocus<HTMLInputElement>();
+  const logtoConfigured = isLogtoConfigured();
+  const logtoPartiallyConfigured = isLogtoPartiallyConfigured();
+
+  useEffect(() => {
+    if (!logtoConfigured) return;
+    const params = new URLSearchParams(search);
+    if (!params.has("code") && !params.has("state") && !params.has("error")) return;
+    void completeLogtoCallback()
+      .then((completed) => {
+        if (completed) setLocation(getPostLogtoLoginPath());
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : t("auth:login_failed"));
+      });
+  }, [completeLogtoCallback, logtoConfigured, search, setLocation, t]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -46,7 +68,7 @@ export function LoginPage() {
       const resp = await fetch("/api/v1/auth/token", {
         method: "POST",
         headers: {
-          "Accept-Language": i18n.language || "zh",
+          "Accept-Language": i18n.language || "vi",
         },
         body,
       });
@@ -70,6 +92,77 @@ export function LoginPage() {
     }
   };
 
+  const loginPanel = logtoConfigured ? (
+    <div className="space-y-4">
+      <p className="text-sm text-text-3">
+        Đăng nhập bằng tài khoản Logto của Studio360.
+      </p>
+      <button
+        type="button"
+        disabled={loading}
+        onClick={() => void loginWithLogto(safeReturnPath(new URLSearchParams(search).get("from")) ?? "/app/projects")}
+        className={`${ACCENT_BTN_CLS} w-full justify-center`}
+        style={ACCENT_BUTTON_STYLE}
+      >
+        {loading ? t("auth:logging_in") : "Tiếp tục với Logto"}
+      </button>
+    </div>
+  ) : logtoPartiallyConfigured ? (
+    <p role="alert" className="text-sm text-warm-bright">
+      Logto của Studio360 chưa được cấu hình đầy đủ. Vui lòng liên hệ quản trị viên.
+    </p>
+  ) : (
+    <form onSubmit={voidPromise(handleSubmit)} className="space-y-4">
+      <div>
+        <FieldLabel htmlFor="login-username" required>
+          {t("auth:username")}
+        </FieldLabel>
+        <input
+          id="login-username"
+          type="text"
+          autoComplete="username"
+          spellCheck={false}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className={INPUT_CLS}
+          ref={usernameRef}
+          required
+        />
+      </div>
+
+      <div>
+        <FieldLabel htmlFor="login-password" required>
+          {t("auth:password")}
+        </FieldLabel>
+        <input
+          id="login-password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className={INPUT_CLS}
+          required
+        />
+      </div>
+
+      {error && (
+        <p role="alert" aria-live="polite" className="text-sm text-warm-bright">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className={`${ACCENT_BTN_CLS} w-full justify-center`}
+        style={ACCENT_BUTTON_STYLE}
+      >
+        {loading && <Loader2 aria-hidden className="h-4 w-4 motion-safe:animate-spin" />}
+        {loading ? t("auth:logging_in") : t("auth:login")}
+      </button>
+    </form>
+  );
+
   return (
     <div
       data-testid="login-page"
@@ -92,55 +185,7 @@ export function LoginPage() {
           </h1>
         </div>
 
-        <form onSubmit={voidPromise(handleSubmit)} className="space-y-4">
-          <div>
-            <FieldLabel htmlFor="login-username" required>
-              {t("auth:username")}
-            </FieldLabel>
-            <input
-              id="login-username"
-              type="text"
-              autoComplete="username"
-              spellCheck={false}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className={INPUT_CLS}
-              ref={usernameRef}
-              required
-            />
-          </div>
-
-          <div>
-            <FieldLabel htmlFor="login-password" required>
-              {t("auth:password")}
-            </FieldLabel>
-            <input
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={INPUT_CLS}
-              required
-            />
-          </div>
-
-          {error && (
-            <p role="alert" aria-live="polite" className="text-sm text-warm-bright">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`${ACCENT_BTN_CLS} w-full justify-center`}
-            style={ACCENT_BUTTON_STYLE}
-          >
-            {loading && <Loader2 aria-hidden className="h-4 w-4 motion-safe:animate-spin" />}
-            {loading ? t("auth:logging_in") : t("auth:login")}
-          </button>
-        </form>
+        {loginPanel}
       </div>
     </div>
   );

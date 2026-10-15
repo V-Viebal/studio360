@@ -199,7 +199,7 @@ class AssistantService:
         """Prepare prompt components: (text, sdk_prompt_or_none, echo_blocks_or_none)."""
         text = content.strip()
         if not text and not images:
-            raise ValueError("消息内容不能为空")
+            raise ValueError("Nội dung tin nhắn không được để trống")
 
         if images:
             sdk_prompt = self._build_multimodal_prompt(text, images)

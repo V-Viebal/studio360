@@ -61,7 +61,7 @@ def validate_script_filename(value: str) -> str:
     including a ``scripts/`` prefix or ``..`` segments — is rejected.
     """
     if not isinstance(value, str) or not value:
-        raise ValueError("script 文件名不能为空")
+        raise ValueError("Tên tệp kịch bản không được để trống")
     if "/" in value or "\\" in value or value in (".", ".."):
-        raise ValueError(f"script 必须是纯文件名，禁止路径分隔符: {value!r}")
+        raise ValueError(f"script phải là tên tệp thuần túy, cấm ký tự phân cách đường dẫn: {value!r}")
     return value

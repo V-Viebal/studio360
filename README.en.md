@@ -3,10 +3,10 @@
   <picture>
     <source media="(prefers-color-scheme: light)" srcset="frontend/public/android-chrome-maskable-512x512.png">
     <source media="(prefers-color-scheme: dark)" srcset="frontend/public/android-chrome-512x512.png">
-    <img src="frontend/public/android-chrome-maskable-512x512.png" alt="ArcReel Logo" width="128" style="border-radius: 16px;">
+    <img src="frontend/public/android-chrome-maskable-512x512.png" alt="Studio360 Logo" width="128" style="border-radius: 16px;">
   </picture>
   <br>
-  ArcReel
+  Studio360
   <br>
 </h1>
 
@@ -19,13 +19,13 @@
 
 <p align="center">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Quick_Start-blue?style=for-the-badge" alt="Quick Start"></a>
-  <a href="https://github.com/ArcReel/ArcReel/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License"></a>
-  <a href="https://github.com/ArcReel/ArcReel"><img src="https://img.shields.io/github/stars/ArcReel/ArcReel?style=for-the-badge" alt="Stars"></a>
-  <a href="https://github.com/ArcReel/ArcReel/pkgs/container/arcreel"><img src="https://img.shields.io/badge/Docker-ghcr.io-blue?style=for-the-badge&logo=docker" alt="Docker"></a>
-  <a href="https://github.com/ArcReel/ArcReel/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/ArcReel/ArcReel/test.yml?style=for-the-badge&label=Tests" alt="Tests"></a>
-  <a href="https://codecov.io/gh/ArcReel/ArcReel"><img src="https://img.shields.io/codecov/c/github/ArcReel/ArcReel?style=for-the-badge&label=Coverage" alt="Coverage"></a>
-  <a href="https://github.com/ArcReel/ArcReel/security/code-scanning"><img src="https://img.shields.io/github/actions/workflow/status/ArcReel/ArcReel/codeql.yml?style=for-the-badge&label=CodeQL" alt="CodeQL"></a>
-  <a href="https://github.com/ArcReel/ArcReel/releases/latest"><img src="https://img.shields.io/github/v/release/ArcReel/ArcReel?style=for-the-badge&label=Release" alt="Release"></a>
+  <a href="https://github.com/Studio360/Studio360/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License"></a>
+  <a href="https://github.com/Studio360/Studio360"><img src="https://img.shields.io/github/stars/Studio360/Studio360?style=for-the-badge" alt="Stars"></a>
+  <a href="https://github.com/Studio360/Studio360/pkgs/container/studio360"><img src="https://img.shields.io/badge/Docker-ghcr.io-blue?style=for-the-badge&logo=docker" alt="Docker"></a>
+  <a href="https://github.com/Studio360/Studio360/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Studio360/Studio360/test.yml?style=for-the-badge&label=Tests" alt="Tests"></a>
+  <a href="https://codecov.io/gh/Studio360/Studio360"><img src="https://img.shields.io/codecov/c/github/Studio360/Studio360?style=for-the-badge&label=Coverage" alt="Coverage"></a>
+  <a href="https://github.com/Studio360/Studio360/security/code-scanning"><img src="https://img.shields.io/github/actions/workflow/status/Studio360/Studio360/codeql.yml?style=for-the-badge&label=CodeQL" alt="CodeQL"></a>
+  <a href="https://github.com/Studio360/Studio360/releases/latest"><img src="https://img.shields.io/github/v/release/Studio360/Studio360?style=for-the-badge&label=Release" alt="Release"></a>
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/hero-screenshot.png" alt="ArcReel Workspace" width="800">
+  <img src="docs/assets/hero-screenshot.png" alt="Studio360 Workspace" width="800">
 </p>
 
 ---
@@ -96,8 +96,8 @@ graph TD
 ### Default Deployment (SQLite)
 
 ```bash
-git clone https://github.com/ArcReel/ArcReel.git
-cd ArcReel/deploy
+git clone https://github.com/Studio360/Studio360.git
+cd Studio360/deploy
 cp .env.example .env
 docker compose up -d
 # Visit http://localhost:1241
@@ -106,14 +106,14 @@ docker compose up -d
 ### Production Deployment (PostgreSQL)
 
 ```bash
-cd ArcReel/deploy/production
+cd Studio360/deploy/production
 cp .env.example .env    # Set POSTGRES_PASSWORD
 docker compose up -d
 ```
 
 After first launch, log in with the default account (username `admin`, password set via `AUTH_PASSWORD` in `.env`; if not set, it will be auto-generated and written back to `.env` on first startup). Then go to **Settings** (`/app/settings`) to complete configuration:
 
-1. **ArcReel Agent** — Configure provider credentials that power the AI assistant. Supports Anthropic and compatible providers, with custom Base URL and model
+1. **Studio360 Agent** — Configure provider credentials that power the AI assistant. Supports Anthropic and compatible providers, with custom Base URL and model
 2. **AI Image/Video/Text Generation** — Configure at least one provider's API Key (Gemini / Volcengine Ark / Grok / OpenAI / Vidu / DashScope / MiniMax / Kling), or add a custom provider
 
 > 📖 For detailed steps, see the [Getting Started Guide](docs/getting-started.md)
@@ -144,7 +144,7 @@ After first launch, log in with the default account (username `admin`, password 
 
 ## Provider Support
 
-ArcReel supports multiple built-in and custom providers through unified `ImageBackend` / `VideoBackend` / `TextBackend` protocols, switchable at global or project level:
+Studio360 supports multiple built-in and custom providers through unified `ImageBackend` / `VideoBackend` / `TextBackend` protocols, switchable at global or project level:
 
 ### Image Providers
 
@@ -195,7 +195,7 @@ Provider selection priority: Project-level settings > Global defaults. When swit
 
 ## AI Assistant Architecture
 
-ArcReel's AI assistant is built on the Claude Agent SDK, using an **Orchestration Skill + Focused Subagent** multi-agent architecture:
+Studio360's AI assistant is built on the Claude Agent SDK, using an **Orchestration Skill + Focused Subagent** multi-agent architecture:
 
 ```mermaid
 flowchart TD
@@ -221,10 +221,10 @@ flowchart TD
 
 ## OpenClaw Integration
 
-ArcReel supports invocation through external AI Agent platforms like [OpenClaw](https://openclaw.ai), enabling natural language-driven video creation:
+Studio360 supports invocation through external AI Agent platforms like [OpenClaw](https://openclaw.ai), enabling natural language-driven video creation:
 
-1. Generate an API Key in ArcReel's Settings page (`arc-` prefix)
-2. Load ArcReel's Skill definition in OpenClaw (access `http://your-domain/skill.md` to auto-fetch)
+1. Generate an API Key in Studio360's Settings page (`arc-` prefix)
+2. Load Studio360's Skill definition in OpenClaw (access `http://your-domain/skill.md` to auto-fetch)
 3. Create projects, generate scripts, and produce videos through OpenClaw conversations
 
 Technical implementation: API Key authentication (Bearer Token) + synchronous Agent chat endpoint (`POST /api/v1/agent/chat`), internally connects to SSE streaming assistant and collects complete responses.
@@ -322,7 +322,7 @@ cd frontend && pnpm check
 This project is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE),
 with additional terms in [NOTICE](./NOTICE).
 
-Copyright © 2026 Pollo3470 and ArcReel contributors
+Copyright © 2026 Pollo3470 and Studio360 contributors
 
 If your organization's policy does not allow the use of AGPL-3.0 licensed software,
 or you wish to use this project commercially without the AGPL-3.0 open-source

@@ -24,6 +24,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { API } from "@/api";
+import { withAuthQuery } from "@/utils/auth";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useAppStore } from "@/stores/app-store";
 import { useConfigStatusStore } from "@/stores/config-status-store";
@@ -189,7 +190,7 @@ function Poster({ project, styleLabel, large = false }: PosterProps) {
     >
       {project.thumbnail ? (
         <img
-          src={project.thumbnail}
+          src={withAuthQuery(project.thumbnail)}
           alt=""
           loading="lazy"
           decoding="async"

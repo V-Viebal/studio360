@@ -146,4 +146,12 @@ async def execute_resume_video_task(task: dict[str, Any], *, job_id: str) -> dic
             resource_id=resource_id,
             payload=payload,
         )
+        if task_type == "video":
+            from server.services.auto_compose import schedule_auto_compose
+
+            await schedule_auto_compose(
+                project_name,
+                str(payload.get("script_file") or task.get("script_file") or ""),
+                task_id=task_id,
+            )
         return result

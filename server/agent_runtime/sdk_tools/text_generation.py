@@ -54,9 +54,9 @@ def _parse_normalized_content(response_text: str, model: type[BaseModel]) -> dic
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        raise ValueError(f"step1 规范化内容 JSON 解析失败: {e}")
+        raise ValueError(f"Phân tích JSON nội dung chuẩn hoá step1 thất bại: {e}")
     if not isinstance(data, dict):
-        raise ValueError("step1 规范化内容结构异常：顶层应为对象 {title, scenes}")
+        raise ValueError("Cấu trúc nội dung chuẩn hoá step1 không hợp lệ: Cấp cao nhất phải là đối tượng {title, scenes}")
     try:
         return model.model_validate(data).model_dump()
     except ValidationError as e:

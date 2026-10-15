@@ -69,11 +69,11 @@ export function ToolCallWithResult({ block }: ToolCallWithResultProps) {
   const toolName = block.name || "Tool";
   const isTodoWrite = toolName === "TodoWrite";
 
-  // ArcReel in-process MCP tool 显示名：从 mcp__arcreel__<id> 中提取 id，
+  // ArcReel in-process MCP tool 显示名：从 mcp__studio360__<id> 中提取 id，
   // 查 dashboard:tool_name_<id>（单一真相源 = backend ARCREEL_MCP_TOOL_IDS）。
   // AskUserQuestion 显示为本地化「提问」标签；其余工具（Bash / TodoWrite /
   // Skill / ...）保留原名。
-  const mcpMatch = /^mcp__arcreel__([a-z0-9_]+)$/.exec(toolName);
+  const mcpMatch = /^mcp__studio360__([a-z0-9_]+)$/.exec(toolName);
   const displayName = mcpMatch
     ? t(`tool_name_${mcpMatch[1]}`, { defaultValue: toolName })
     : toolName === "AskUserQuestion"

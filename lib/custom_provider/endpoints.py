@@ -33,7 +33,7 @@ from lib.text_backends.openai import OpenAITextBackend
 from lib.video_backends.ark import ArkVideoBackend
 from lib.video_backends.base import VideoCapabilities
 from lib.video_backends.dashscope import DashScopeVideoBackend
-from lib.video_backends.grok import GrokVideoBackend
+from lib.video_backends.grok import GrokVideoBackend, LLM360GrokVideoBackend
 from lib.video_backends.kling import KlingVideoBackend
 from lib.video_backends.minimax import MiniMaxVideoBackend
 from lib.video_backends.newapi import NewAPIVideoBackend
@@ -148,6 +148,10 @@ def _build_openai_video(provider, model_id: str) -> CustomVideoBackend:
     # select the native backend when the configured host is xAI itself.
     if model_id.lower().startswith("grok-imagine-video") and (hostname == "api.x.ai" or hostname.endswith(".x.ai")):
         delegate = GrokVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)
+    elif model_id.lower().startswith("grok-imagine-video") and (hostname.endswith(".hmz.one") or hostname.endswith(".antares.vn") or hostname == "localhost" or hostname == "127.0.0.1"):
+        # LLM360 node: keep the xAI credential inside the gateway and use its
+        # OpenAI-compatible video passthrough instead of the native xAI SDK.
+        delegate = LLM360GrokVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)
     else:
         delegate = OpenAIVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)
     return CustomVideoBackend(provider_id=provider.provider_id, delegate=delegate, model=model_id)

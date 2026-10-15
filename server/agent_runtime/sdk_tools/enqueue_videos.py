@@ -39,7 +39,7 @@ def _get_video_prompt(item: dict[str, Any]) -> str:
     prompt = item.get("video_prompt")
     if not prompt:
         item_id = item.get("segment_id") or item.get("scene_id")
-        raise ValueError(f"片段/场景缺少 video_prompt 字段: {item_id}")
+        raise ValueError(f"Phân cảnh/cảnh thiếu trường video_prompt: {item_id}")
     if is_structured_video_prompt(prompt):
         # drama 口型台词单一真相源在场景级有序 utterances：取 dialogue-kind 注入 video YAML 的
         # dialogue 出口（drama video_prompt 已不带 dialogue）。narration / ad 无 utterances 字段、原样渲染。
@@ -48,7 +48,7 @@ def _get_video_prompt(item: dict[str, Any]) -> str:
         return video_prompt_to_yaml(prompt)
     if isinstance(prompt, dict):
         item_id = item.get("segment_id") or item.get("scene_id")
-        raise ValueError(f"片段/场景 video_prompt 为对象但格式不符合结构化规范: {item_id}")
+        raise ValueError(f"Phân cảnh/cảnh video_prompt là đối tượng nhưng không đúng chuẩn cấu trúc: {item_id}")
     if not isinstance(prompt, str):
         item_id = item.get("segment_id") or item.get("scene_id")
         raise TypeError(f"片段/场景 video_prompt 类型无效（期望 str 或 dict）: {item_id}")

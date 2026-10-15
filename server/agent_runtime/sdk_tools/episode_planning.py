@@ -94,7 +94,7 @@ def plan_episodes_tool(ctx: ToolContext):
     async def _handler(args: dict[str, Any]) -> dict[str, Any]:
         raw_instructions = args.get("instructions")
         if raw_instructions is not None and not isinstance(raw_instructions, str):
-            text = f"❌ 参数错误：instructions 必须是字符串，收到 {type(raw_instructions).__name__}"
+            text = f"❌ 参数错误：instructions phải là chuỗi ký tự，收到 {type(raw_instructions).__name__}"
             return {"content": [{"type": "text", "text": text}], "is_error": True}
         if isinstance(raw_instructions, str) and len(raw_instructions) > _MAX_INSTRUCTIONS_LEN:
             text = f"❌ 参数错误：instructions 过长（{len(raw_instructions)} 字符，上限 {_MAX_INSTRUCTIONS_LEN}），请精简后重试"
@@ -152,11 +152,11 @@ def replan_episodes_tool(ctx: ToolContext):
         try:
             raw_from_episode = args["from_episode"]
             if not isinstance(raw_from_episode, int) or isinstance(raw_from_episode, bool) or raw_from_episode < 1:
-                raise ValueError(f"from_episode 必须是正整数，收到 {raw_from_episode!r}")
+                raise ValueError(f"from_episode phải là số nguyên dương，收到 {raw_from_episode!r}")
             from_episode = raw_from_episode
             raw_instructions = args["instructions"]
             if not isinstance(raw_instructions, str):
-                raise ValueError(f"instructions 必须是字符串，收到 {type(raw_instructions).__name__}")
+                raise ValueError(f"instructions phải là chuỗi ký tự，收到 {type(raw_instructions).__name__}")
             instructions = raw_instructions.strip()
             if not instructions:
                 raise ValueError("instructions 不能为空")

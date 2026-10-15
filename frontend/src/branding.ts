@@ -4,27 +4,22 @@
 //
 // Source code references BRAND.name (or the [[brand]] placeholder in i18n
 // resources) so the displayed product name is not hardcoded across files.
-// Defaults preserve the upstream brand; downstream distributions can override
-// via frontend/.env without code changes.
 
 const env = import.meta.env as Record<string, string | undefined>;
 
 function fallback(value: string | undefined, defaultValue: string): string {
-  // Trim + empty check so VITE_BRAND_NAME="" (or whitespace) falls back to the
-  // default, matching the documented "Empty = upstream defaults" contract.
   if (typeof value !== "string") return defaultValue;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : defaultValue;
 }
 
 export const BRAND = {
-  name: fallback(env.VITE_BRAND_NAME, "ArcReel"),
-  tagline: fallback(env.VITE_BRAND_TAGLINE, "AI 视频创作工作台"),
+  name: fallback(env.VITE_BRAND_NAME, "Studio360"),
+  tagline: fallback(env.VITE_BRAND_TAGLINE, "Nền tảng sáng tạo video AI"),
   description: fallback(
     env.VITE_BRAND_DESCRIPTION,
-    "AI 视频创作工作台，统一管理项目、剧本、分镜、视频生成与助手对话。",
+    "Nền tảng sáng tạo video AI, quản lý thống nhất dự án, kịch bản, phân cảnh, tạo video và tương tác trợ lý thông minh.",
   ),
 } as const;
 
 export const BRAND_DOCUMENT_TITLE = `${BRAND.name} · ${BRAND.tagline}`;
-

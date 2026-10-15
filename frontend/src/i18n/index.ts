@@ -15,7 +15,7 @@ function pathFor(lang: string, ns: string): string {
   return `./${lang}/${ns}.ts`;
 }
 
-export const SUPPORTED_LANGUAGES = ['zh', 'en', 'vi'] as const;
+export const SUPPORTED_LANGUAGES = ['vi', 'en', 'zh'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 export const LANGUAGE_DISPLAY_LABELS: Record<SupportedLanguage, string> = {
@@ -76,7 +76,7 @@ export const i18nReady = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    fallbackLng: 'zh',
+    fallbackLng: 'vi',
     supportedLngs: SUPPORTED_LANGUAGES,
     debug: false,
     interpolation: { escapeValue: false },

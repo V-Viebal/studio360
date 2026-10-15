@@ -128,7 +128,11 @@ class OpenAIImageBackend:
             "prompt": request.prompt,
             "n": 1,
         }
-        kwargs.update(_resolve_openai_params(request.image_size, request.aspect_ratio))
+        params = _resolve_openai_params(request.image_size, request.aspect_ratio)
+        if "grok" in self._model.lower() or "xai" in str(getattr(self, "_base_url", "")).lower():
+            params.pop("size", None)
+            kwargs["extra_body"] = {"aspect_ratio": request.aspect_ratio or "9:16"}
+        kwargs.update(params)
         logger.info("调用 %s 图片 SDK (T2I) kwargs=%s", self.name, format_kwargs_for_log(kwargs))
         response = await self._client.images.generate(**kwargs)
         return await self._save_and_return(response, request)
@@ -173,7 +177,11 @@ class OpenAIImageBackend:
                 "image": image_files,
                 "prompt": request.prompt,
             }
-            edit_kwargs.update(_resolve_openai_params(request.image_size, request.aspect_ratio))
+            params_edit = _resolve_openai_params(request.image_size, request.aspect_ratio)
+            if "grok" in self._model.lower() or "xai" in str(getattr(self, "_base_url", "")).lower():
+                params_edit.pop("size", None)
+                edit_kwargs["extra_body"] = {"aspect_ratio": request.aspect_ratio or "9:16"}
+            edit_kwargs.update(params_edit)
             logger.info(
                 "调用 %s 图片 SDK (I2I) kwargs=%s",
                 self.name,

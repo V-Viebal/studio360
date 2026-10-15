@@ -48,13 +48,13 @@ def _build_specs(
         resolved: list[str] = []
         for name in names:
             if name not in assets_dict:
-                warnings.append(f"⚠️  {spec.label_zh} '{name}' 不存在于 project.json 中，跳过")
+                warnings.append(f"⚠️  {spec.label_zh} '{name}' không tồn tại trong project.json, bỏ qua")
                 continue
             # 仅当 description 是非空字符串才入队；空白 / 非字符串（dict、数字等）
             # 都告警跳过，避免漏到 from_request 抛错或 .strip() 抛 AttributeError 而中断整批。
             desc = assets_dict[name].get("description")
             if not (isinstance(desc, str) and desc.strip()):
-                warnings.append(f"⚠️  {spec.label_zh} '{name}' 缺少描述，跳过")
+                warnings.append(f"⚠️  {spec.label_zh} '{name}' thiếu mô tả, bỏ qua")
                 continue
             resolved.append(name)
     else:
@@ -64,7 +64,7 @@ def _build_specs(
             name = item["name"]
             desc = assets_dict.get(name, {}).get("description")
             if not (isinstance(desc, str) and desc.strip()):
-                warnings.append(f"⚠️  {spec.label_zh} '{name}' 缺少描述，跳过")
+                warnings.append(f"⚠️  {spec.label_zh} '{name}' thiếu mô tả, bỏ qua")
                 continue
             resolved.append(name)
 
@@ -104,10 +104,10 @@ def list_pending_assets_tool(ctx: ToolContext):
                 spec = ASSET_SPECS[t]
                 pending = _get_pending(ctx.pm, ctx.project_name, t)
                 if not pending:
-                    lines.append(f"✅ 项目 '{ctx.project_name}' 所有{spec.label_zh}都已有设计图")
+                    lines.append(f"✅ 项目 '{ctx.project_name}' tất cả {spec.label_zh} đều đã có ảnh thiết kế")
                     continue
                 total += len(pending)
-                lines.append(f"\n📋 待生成的{spec.label_zh} ({len(pending)} 个):")
+                lines.append(f"\n📋 {spec.label_zh} đang chờ tạo ({len(pending)} 个):")
                 for item in pending:
                     desc = item.get("description", "") or ""
                     desc_preview = desc[:60] + "..." if len(desc) > 60 else desc

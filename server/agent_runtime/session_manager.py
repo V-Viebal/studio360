@@ -876,7 +876,7 @@ class SessionManager:
             managed._cleanup_task = None
 
         if managed.status == "running":
-            raise ValueError("会话正在处理中，请等待当前回复完成后再发送新消息")
+            raise ValueError("Phiên đang xử lý, vui lòng đợi phản hồi hoàn tất trước khi gửi tin nhắn mới")
 
         log_entry: dict[str, Any] | None = None
         if user_entry is not None:

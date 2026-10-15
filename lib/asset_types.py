@@ -48,7 +48,7 @@ ASSET_SPECS: dict[str, AssetSpec] = {
         bucket_key="characters",
         sheet_field="character_sheet",
         subdir="characters",
-        label_zh="角色",
+        label_zh="Nhân vật",
         extra_string_fields=("voice_style", "reference_image"),
         # voice_style 是 LLM 生成的角色配音风格，agent 可改；reference_image 是用户上传
         # 的文件路径（系统级），不进 agent 白名单——更新走 update_character_reference_image。
@@ -59,7 +59,7 @@ ASSET_SPECS: dict[str, AssetSpec] = {
         bucket_key="scenes",
         sheet_field="scene_sheet",
         subdir="scenes",
-        label_zh="场景",
+        label_zh="Bối cảnh",
         extra_string_fields=(),
         agent_editable_extra_fields=(),
     ),
@@ -68,7 +68,7 @@ ASSET_SPECS: dict[str, AssetSpec] = {
         bucket_key="props",
         sheet_field="prop_sheet",
         subdir="props",
-        label_zh="道具",
+        label_zh="Đạo cụ",
         extra_string_fields=(),
         agent_editable_extra_fields=(),
     ),
@@ -77,7 +77,7 @@ ASSET_SPECS: dict[str, AssetSpec] = {
         bucket_key="products",
         sheet_field="product_sheet",
         subdir="products",
-        label_zh="产品",
+        label_zh="Sản phẩm",
         # brand 是用户填写的品牌要素自由文本；reference_images 是用户上传的多张产品
         # 原图路径（系统级，保真验收锚点），selling_points 是卖点列表（agent 起草、
         # 用户可改）。

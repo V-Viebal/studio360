@@ -67,7 +67,7 @@ def _build_prompt(
 ) -> str:
     image_prompt = segment.get("image_prompt", "")
     if not image_prompt:
-        raise ValueError(f"片段/场景 {segment[id_field]} 缺少 image_prompt 字段")
+        raise ValueError(f"片段/场景 {segment[id_field]} thiếu trường image_prompt")
 
     style = normalize_style(style)
     structured = is_structured_image_prompt(image_prompt)

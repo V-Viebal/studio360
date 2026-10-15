@@ -24,7 +24,7 @@ const ACTIVE_SHADOW =
 export function GenerateButton({
   onClick,
   loading = false,
-  label = "生成",
+  label = "Tạo",
   className,
   disabled = false,
   layoutId,
@@ -81,7 +81,7 @@ export function GenerateButton({
           </motion.span>
         )}
       </AnimatePresence>
-      <span>{loading ? "生成中..." : label}</span>
+      <span>{loading ? "Đang tạo..." : label}</span>
     </motion.button>
   );
 }

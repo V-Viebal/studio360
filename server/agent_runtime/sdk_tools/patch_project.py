@@ -89,7 +89,7 @@ def patch_project_tool(ctx: ToolContext):
             has_settings = "settings" in args
             has_overview = "overview" in args
             if sum((has_upsert, has_settings, has_overview)) > 1:
-                raise ValueError("table/entries、settings、overview 三选一,不能同时给出多个")
+                raise ValueError("Chỉ chọn một trong table/entries, settings, overview; không thể cung cấp cùng lúc nhiều lựa chọn")
             if not (has_upsert or has_settings or has_overview):
                 raise ValueError("必须提供 table+entries(资产 upsert)、settings(顶层字段)或 overview(项目概述)之一")
 

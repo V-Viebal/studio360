@@ -3,25 +3,25 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: arcreel
+      POSTGRES_USER: studio360
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Coolify}
-      POSTGRES_DB: arcreel
+      POSTGRES_DB: studio360
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     volumes:
       - studio360-stage-postgres:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arcreel"]
+      test: ["CMD-SHELL", "pg_isready -U studio360"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - studio360-stage-internal
 
-  arcreel:
-    image: studio360-arcreel:20260717-c980a9f
+  studio360:
+    image: studio360-studio360:20260717-c980a9f
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://arcreel:${POSTGRES_PASSWORD}@postgres:5432/arcreel
+      DATABASE_URL: postgresql+asyncpg://studio360:${POSTGRES_PASSWORD}@postgres:5432/arcreel
       AUTH_USERNAME: ${AUTH_USERNAME:-admin}
       AUTH_PASSWORD: ${AUTH_PASSWORD:?Set AUTH_PASSWORD in Coolify}
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?Set AUTH_TOKEN_SECRET in Coolify}

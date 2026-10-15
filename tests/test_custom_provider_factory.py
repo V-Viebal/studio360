@@ -81,6 +81,21 @@ class TestEndpointDispatch:
             model="grok-imagine-video-1.5",
         )
 
+    @patch("lib.custom_provider.endpoints.LLM360GrokVideoBackend")
+    def test_llm360_grok_video_uses_node_backend(self, mock_cls):
+        provider = _make_provider(base_url="https://llm-d74807.hmz.one/v1")
+        result = create_custom_backend(
+            provider=provider,
+            model_id="grok-imagine-video-1.5",
+            endpoint="openai-video",
+        )
+        assert isinstance(result, CustomVideoBackend)
+        mock_cls.assert_called_once_with(
+            api_key="sk-test",
+            base_url="https://llm-d74807.hmz.one/v1",
+            model="grok-imagine-video-1.5",
+        )
+
 
     @patch("lib.custom_provider.endpoints.NewAPIVideoBackend")
     def test_newapi_video(self, mock_cls):

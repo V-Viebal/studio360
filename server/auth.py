@@ -2,10 +2,11 @@
 认证核心模块
 
 提供密码生成、JWT token 创建/验证、凭据校验等功能。
-同时支持 API Key 认证（`arc-` 前缀的 Bearer token）。
+同时支持 API Key 认证（`arc-` hoặc 的 Bearer token）。
 """
 
 import hashlib
+import json
 import logging
 import os
 import secrets
@@ -14,11 +15,13 @@ import time
 from collections import OrderedDict
 from datetime import UTC
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
+from urllib.parse import urlsplit
 
 import jwt
 from fastapi import Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordBearer
+from jwt import PyJWKClient
 from pwdlib import PasswordHash
 from pydantic import BaseModel, ConfigDict
 
@@ -32,13 +35,43 @@ class CurrentUserInfo(BaseModel):
 
     id: str
     sub: str
-    role: str = "admin"
+    role: str = "viewer"
+    roles: tuple[str, ...] = ()
+    scopes: tuple[str, ...] = ()
+    source: str = "legacy"
 
     model_config = ConfigDict(frozen=True)
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role.strip().lower() in {"admin", "administrator", "owner"}
+
+    @property
+    def is_operator(self) -> bool:
+        return _ROLE_ORDER.get(self.role.strip().lower(), -1) >= _ROLE_ORDER["operator"]
 
 
 # JWT 签名密钥缓存
 _cached_token_secret: str | None = None
+_logto_jwks_client: tuple[str, PyJWKClient] | None = None
+
+_ROLE_ORDER = {
+    "viewer": 0,
+    "operator": 1,
+    "manager": 2,
+    "owner": 3,
+    "administrator": 4,
+    "admin": 4,
+}
+_LOGTO_ROLE_ALIASES = {
+    "admin": "administrator",
+    "administrator": "administrator",
+    "owner": "owner",
+    "manager": "manager",
+    "operator": "operator",
+    "viewer": "viewer",
+    "user": "viewer",
+}
 
 # Token 有效期：7 天
 TOKEN_EXPIRY_SECONDS = 7 * 24 * 3600
@@ -59,11 +92,117 @@ def is_auth_enabled() -> bool:
     return os.environ.get("AUTH_ENABLED", "true").strip().lower() not in _AUTH_DISABLED_VALUES
 
 
+def logto_issuer() -> str:
+    """Return the project-scoped Logto issuer, without cross-project fallback."""
+    return os.environ.get("STUDIO360_LOGTO_ISSUER", "").strip().rstrip("/")
+
+
+def logto_resource() -> str:
+    """Return the project-scoped Logto API resource/audience."""
+    return os.environ.get("STUDIO360_LOGTO_API_RESOURCE", "").strip().rstrip("/")
+
+
+def logto_jwks_uri() -> str:
+    configured = os.environ.get("STUDIO360_LOGTO_JWKS_URI", "").strip()
+    return configured or f"{logto_issuer()}/jwks"
+
+
+def _is_https_or_local_http(value: str) -> bool:
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return False
+    return parsed.scheme == "https" or (
+        parsed.scheme == "http"
+        and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+    )
+
+
+def logto_configuration_error() -> str | None:
+    """Validate the minimum project-scoped Logto resource contract."""
+    issuer = logto_issuer()
+    resource = logto_resource()
+    jwks = os.environ.get("STUDIO360_LOGTO_JWKS_URI", "").strip()
+    if not issuer and not resource and not jwks:
+        return None
+    if not issuer or not resource:
+        return "STUDIO360_LOGTO_ISSUER and STUDIO360_LOGTO_API_RESOURCE must be configured together."
+    if not _is_https_or_local_http(issuer):
+        return "STUDIO360_LOGTO_ISSUER must use HTTPS outside local development."
+    if jwks and not _is_https_or_local_http(jwks):
+        return "STUDIO360_LOGTO_JWKS_URI must use HTTPS outside local development."
+    if not _is_https_or_local_http(resource):
+        return "STUDIO360_LOGTO_API_RESOURCE must use HTTPS outside local development."
+    return None
+
+
+def is_logto_configured() -> bool:
+    """Whether this process opted into the Studio360 Logto bearer contract."""
+    return bool(logto_issuer() or logto_resource() or os.environ.get("STUDIO360_LOGTO_JWKS_URI", "").strip())
+
+
+def _get_logto_signing_key(token: str) -> Any:
+    """Resolve a signing key from the project-scoped JWKS endpoint."""
+    global _logto_jwks_client
+    uri = logto_jwks_uri()
+    if _logto_jwks_client is None or _logto_jwks_client[0] != uri:
+        _logto_jwks_client = (uri, PyJWKClient(uri, cache_keys=True, lifespan=300))
+    return _logto_jwks_client[1].get_signing_key_from_jwt(token).key
+
+
+def verify_logto_token(token: str) -> dict[str, Any]:
+    """Validate a Logto access token with pinned issuer, audience and algorithm."""
+    error = logto_configuration_error()
+    if error:
+        raise HTTPException(status_code=503, detail="Logto authentication is misconfigured.")
+    if not is_logto_configured():
+        raise HTTPException(status_code=503, detail="Logto authentication is not configured.")
+
+    try:
+        header = jwt.get_unverified_header(token)
+        if header.get("alg") != "RS256":
+            raise jwt.InvalidAlgorithmError("unsupported JWT algorithm")
+        payload = jwt.decode(
+            token,
+            _get_logto_signing_key(token),
+            algorithms=["RS256"],
+            issuer=logto_issuer(),
+            audience=logto_resource(),
+            options={"require": ["sub", "iss", "aud", "iat", "exp"]},
+        )
+    except HTTPException:
+        raise
+    except (jwt.PyJWTError, ValueError, TypeError, KeyError) as exc:
+        logger.info("Logto access token rejected: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=401,
+            detail="Logto access token is invalid or expired.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    if not isinstance(payload, dict) or not str(payload.get("sub") or "").strip():
+        raise HTTPException(
+            status_code=401,
+            detail="Logto access token is missing a subject.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+
 def _anonymous_user() -> "CurrentUserInfo":
     """关闭认证时返回的固定匿名用户。"""
     from lib.db.base import DEFAULT_USER_ID
 
-    return CurrentUserInfo(id=DEFAULT_USER_ID, sub=_ANONYMOUS_USER_SUB, role="admin")
+    # This is an explicit local development kill-switch, not a default for
+    # authenticated identities. Keep its elevated role so an operator can
+    # still exercise the full local UI when AUTH_ENABLED=false.
+    return CurrentUserInfo(
+        id=DEFAULT_USER_ID,
+        sub=_ANONYMOUS_USER_SUB,
+        role="admin",
+        roles=("admin",),
+        source="local-bypass",
+    )
 
 
 # OAuth2 scheme
@@ -112,6 +251,11 @@ def create_token(username: str) -> str:
     now = time.time()
     payload = {
         "sub": username,
+        # Legacy password login is a single local operator account. Explicitly
+        # carry its role so the role mapper never needs an implicit admin
+        # default for arbitrary signed tokens.
+        "role": "admin",
+        "roles": ["admin"],
         "iat": now,
         "exp": now + TOKEN_EXPIRY_SECONDS,
     }
@@ -169,9 +313,9 @@ def verify_download_token(token: str, project_name: str) -> dict:
         }
     payload = jwt.decode(token, get_token_secret(), algorithms=["HS256"])
     if payload.get("purpose") != "download":
-        raise ValueError("token purpose 不匹配")
+        raise ValueError("Mục đích token không khớp (token purpose mismatch)")
     if payload.get("project") != project_name:
-        raise ValueError("token project 不匹配")
+        raise ValueError("Dự án token không khớp (token project mismatch)")
     return payload
 
 
@@ -273,7 +417,7 @@ def ensure_auth_password(env_path: str | None = None) -> str:
 # API Key 认证支持
 # ---------------------------------------------------------------------------
 
-API_KEY_PREFIX = "arc-"
+API_KEY_PREFIX = "std-"
 API_KEY_CACHE_TTL = 300  # 5 分钟
 
 # LRU 缓存：key_hash → (payload_dict | None, expires_at_timestamp)
@@ -404,26 +548,123 @@ def _verify_and_get_payload(token: str) -> dict:
 
 
 async def _verify_and_get_payload_async(token: str) -> dict:
-    """异步验证 token，支持 API Key（arc- 前缀）和 JWT 两种模式。"""
-    if token.startswith(API_KEY_PREFIX):
+    """异步验证 token，支持 API Key（arc- hoặc ）和 JWT 两种模式。"""
+    if token.startswith(API_KEY_PREFIX) or token.startswith("arc-"):
         payload = await _verify_api_key(token)
         if payload is None:
             raise HTTPException(
                 status_code=401,
-                detail="API Key 无效、已过期或不存在",
+                detail="API Key không hợp lệ, đã hết hạn hoặc không tồn tại",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return payload
+    if is_logto_configured():
+        return verify_logto_token(token)
     # JWT 路径
     return _verify_and_get_payload(token)
 
 
-def _payload_to_user(payload: dict) -> CurrentUserInfo:
-    """Convert a verified JWT/API-key payload to CurrentUserInfo."""
+def _claim_values(value: object) -> list[str]:
+    """Flatten Logto role/scope claim shapes without trusting arbitrary data."""
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith("["):
+            try:
+                parsed = json.loads(text)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                parsed = None
+            if isinstance(parsed, list):
+                return _claim_values(parsed)
+        return text.replace(",", " ").replace(";", " ").split()
+    if isinstance(value, (list, tuple, set)):
+        values: list[str] = []
+        for item in value:
+            values.extend(_claim_values(item))
+        return values
+    return []
+
+
+def _roles_and_scopes(payload: dict[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    role_claims = (
+        payload.get("roles"),
+        payload.get("role"),
+        payload.get("urn:logto:roles"),
+        payload.get("http://logto.io/claims/roles"),
+        payload.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role"),
+    )
+    scope_claims = (payload.get("scope"), payload.get("scopes"), payload.get("scp"))
+    roles = tuple(dict.fromkeys(
+        item.strip().lower()
+        for claim in role_claims
+        for item in _claim_values(claim)
+        if item.strip()
+    ))
+    scopes = tuple(dict.fromkeys(
+        item.strip().lower()
+        for claim in scope_claims
+        for item in _claim_values(claim)
+        if item.strip()
+    ))
+    return roles, scopes
+
+
+def _logto_role(roles: tuple[str, ...], scopes: tuple[str, ...]) -> str:
+    candidates = [_LOGTO_ROLE_ALIASES[role] for role in roles if role in _LOGTO_ROLE_ALIASES]
+    if "admin:all" in scopes:
+        candidates.append("administrator")
+    return max(candidates, key=lambda role: _ROLE_ORDER[role]) if candidates else "viewer"
+
+
+def _payload_to_user(payload: dict[str, Any]) -> CurrentUserInfo:
+    """Convert a verified JWT/API-key payload to a scoped CurrentUserInfo.
+
+    Logto identities are keyed by their subject and receive only the highest
+    role explicitly present in signed claims. API keys are automation/operator
+    identities; neither path silently becomes admin.
+    """
     from lib.db.base import DEFAULT_USER_ID
 
-    sub = payload.get("sub", "")
-    return CurrentUserInfo(id=DEFAULT_USER_ID, sub=sub, role="admin")
+    sub = str(payload.get("sub") or "").strip()
+    if not sub:
+        raise HTTPException(status_code=401, detail="Authenticated token is missing a subject.")
+
+    via = str(payload.get("via") or "").strip().lower()
+    roles, scopes = _roles_and_scopes(payload)
+    if via == "apikey":
+        role = str(payload.get("role") or "operator").strip().lower()
+        if role not in _ROLE_ORDER or _ROLE_ORDER[role] > _ROLE_ORDER["operator"]:
+            role = "operator"
+        return CurrentUserInfo(
+            id=sub[:64],
+            sub=sub,
+            role=role,
+            roles=(role,),
+            source="api-key",
+        )
+
+    if payload.get("iss"):
+        role = _logto_role(roles, scopes)
+        return CurrentUserInfo(
+            id=sub[:64],
+            sub=sub,
+            role=role,
+            roles=roles,
+            scopes=scopes,
+            source="logto",
+        )
+
+    # The legacy local password flow has one configured operator account and
+    # carries an explicit role claim from create_token().
+    role = str(payload.get("role") or "").strip().lower()
+    if role not in _ROLE_ORDER:
+        role = "admin" if sub == os.environ.get("AUTH_USERNAME", "admin") else "operator"
+    return CurrentUserInfo(
+        id=DEFAULT_USER_ID,
+        sub=sub,
+        role=role,
+        roles=roles or (role,),
+        source="legacy",
+    )
 
 
 async def get_current_user(
@@ -444,6 +685,24 @@ async def get_current_user(
         )
     payload = await _verify_and_get_payload_async(token)
     return _payload_to_user(payload)
+
+
+async def get_current_operator(
+    user: Annotated[CurrentUserInfo, Depends(get_current_user)],
+) -> CurrentUserInfo:
+    """Require an authenticated operator-level identity."""
+    if not user.is_operator:
+        raise HTTPException(status_code=403, detail="operator role is required")
+    return user
+
+
+async def get_current_admin(
+    user: Annotated[CurrentUserInfo, Depends(get_current_user)],
+) -> CurrentUserInfo:
+    """Require an explicitly elevated Logto/local administrator identity."""
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="administrator role is required")
+    return user
 
 
 async def get_current_user_flexible(
@@ -470,3 +729,5 @@ async def get_current_user_flexible(
 # Type aliases for FastAPI dependency injection
 CurrentUser = Annotated[CurrentUserInfo, Depends(get_current_user)]
 CurrentUserFlexible = Annotated[CurrentUserInfo, Depends(get_current_user_flexible)]
+CurrentOperator = Annotated[CurrentUserInfo, Depends(get_current_operator)]
+CurrentAdmin = Annotated[CurrentUserInfo, Depends(get_current_admin)]

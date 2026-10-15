@@ -3,10 +3,10 @@
   <picture>
     <source media="(prefers-color-scheme: light)" srcset="frontend/public/android-chrome-maskable-512x512.png">
     <source media="(prefers-color-scheme: dark)" srcset="frontend/public/android-chrome-512x512.png">
-    <img src="frontend/public/android-chrome-maskable-512x512.png" alt="ArcReel Logo" width="128" style="border-radius: 16px;">
+    <img src="frontend/public/android-chrome-maskable-512x512.png" alt="Studio360 Logo" width="128" style="border-radius: 16px;">
   </picture>
   <br>
-  ArcReel
+  Studio360
   <br>
 </h1>
 
@@ -19,13 +19,13 @@
 
 <p align="center">
   <a href="#快速开始"><img src="https://img.shields.io/badge/Quick_Start-blue?style=for-the-badge" alt="Quick Start"></a>
-  <a href="https://github.com/ArcReel/ArcReel/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License"></a>
-  <a href="https://github.com/ArcReel/ArcReel"><img src="https://img.shields.io/github/stars/ArcReel/ArcReel?style=for-the-badge" alt="Stars"></a>
-  <a href="https://github.com/ArcReel/ArcReel/pkgs/container/arcreel"><img src="https://img.shields.io/badge/Docker-ghcr.io-blue?style=for-the-badge&logo=docker" alt="Docker"></a>
-  <a href="https://github.com/ArcReel/ArcReel/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/ArcReel/ArcReel/test.yml?style=for-the-badge&label=Tests" alt="Tests"></a>
-  <a href="https://codecov.io/gh/ArcReel/ArcReel"><img src="https://img.shields.io/codecov/c/github/ArcReel/ArcReel?style=for-the-badge&label=Coverage" alt="Coverage"></a>
-  <a href="https://github.com/ArcReel/ArcReel/security/code-scanning"><img src="https://img.shields.io/github/actions/workflow/status/ArcReel/ArcReel/codeql.yml?style=for-the-badge&label=CodeQL" alt="CodeQL"></a>
-  <a href="https://github.com/ArcReel/ArcReel/releases/latest"><img src="https://img.shields.io/github/v/release/ArcReel/ArcReel?style=for-the-badge&label=Release" alt="Release"></a>
+  <a href="https://github.com/Studio360/Studio360/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge" alt="License"></a>
+  <a href="https://github.com/Studio360/Studio360"><img src="https://img.shields.io/github/stars/Studio360/Studio360?style=for-the-badge" alt="Stars"></a>
+  <a href="https://github.com/Studio360/Studio360/pkgs/container/studio360"><img src="https://img.shields.io/badge/Docker-ghcr.io-blue?style=for-the-badge&logo=docker" alt="Docker"></a>
+  <a href="https://github.com/Studio360/Studio360/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Studio360/Studio360/test.yml?style=for-the-badge&label=Tests" alt="Tests"></a>
+  <a href="https://codecov.io/gh/Studio360/Studio360"><img src="https://img.shields.io/codecov/c/github/Studio360/Studio360?style=for-the-badge&label=Coverage" alt="Coverage"></a>
+  <a href="https://github.com/Studio360/Studio360/security/code-scanning"><img src="https://img.shields.io/github/actions/workflow/status/Studio360/Studio360/codeql.yml?style=for-the-badge&label=CodeQL" alt="CodeQL"></a>
+  <a href="https://github.com/Studio360/Studio360/releases/latest"><img src="https://img.shields.io/github/v/release/Studio360/Studio360?style=for-the-badge&label=Release" alt="Release"></a>
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/hero-screenshot.png" alt="ArcReel 工作台" width="800">
+  <img src="docs/assets/hero-screenshot.png" alt="Studio360 工作台" width="800">
 </p>
 
 ---
@@ -96,8 +96,8 @@ graph TD
 ### 默认部署（SQLite）
 
 ```bash
-git clone https://github.com/ArcReel/ArcReel.git
-cd ArcReel/deploy
+git clone https://github.com/Studio360/Studio360.git
+cd Studio360/deploy
 cp .env.example .env
 docker compose up -d
 # 访问 http://localhost:1241
@@ -106,14 +106,14 @@ docker compose up -d
 ### 生产部署（PostgreSQL）
 
 ```bash
-cd ArcReel/deploy/production
+cd Studio360/deploy/production
 cp .env.example .env    # 需设置 POSTGRES_PASSWORD
 docker compose up -d
 ```
 
 首次启动后，使用默认账号登录（用户名 `admin`，密码在 `.env` 中通过 `AUTH_PASSWORD` 设置；未设置则首次启动时自动生成并回写到 `.env`），前往 **设置页**（`/app/settings`）完成配置：
 
-1. **ArcReel 智能体** — 配置驱动 AI 助手的供应商凭据，支持 Anthropic 官方及多种兼容供应商，自定义 Base URL 与模型
+1. **Studio360 智能体** — 配置驱动 AI 助手的供应商凭据，支持 Anthropic 官方及多种兼容供应商，自定义 Base URL 与模型
 2. **AI 生图/生视频/生文本** — 配置至少一个供应商的 API Key（Gemini / 火山方舟 / Grok / OpenAI / Vidu / 阿里百炼 / MiniMax / 可灵），或添加自定义供应商
 
 > 📖 详细步骤请参考 [完整入门教程](docs/getting-started.md)
@@ -144,7 +144,7 @@ docker compose up -d
 
 ## 供应商支持
 
-ArcReel 通过统一的 `ImageBackend` / `VideoBackend` / `TextBackend` 协议，支持多个预置供应商和自定义供应商，可在全局或项目级别切换：
+Studio360 通过统一的 `ImageBackend` / `VideoBackend` / `TextBackend` 协议，支持多个预置供应商和自定义供应商，可在全局或项目级别切换：
 
 ### 图片供应商
 
@@ -203,7 +203,7 @@ ArcReel 通过统一的 `ImageBackend` / `VideoBackend` / `TextBackend` 协议�
 
 ## AI 助手架构
 
-ArcReel 的 AI 助手基于 Claude Agent SDK 构建，采用**编排 Skill + 聚焦 Subagent** 的多智能体架构：
+Studio360 的 AI 助手基于 Claude Agent SDK 构建，采用**编排 Skill + 聚焦 Subagent** 的多智能体架构：
 
 ```mermaid
 flowchart TD
@@ -229,10 +229,10 @@ flowchart TD
 
 ## OpenClaw 集成
 
-ArcReel 支持通过 [OpenClaw](https://openclaw.ai) 等外部 AI Agent 平台调用，实现自然语言驱动的视频创作：
+Studio360 支持通过 [OpenClaw](https://openclaw.ai) 等外部 AI Agent 平台调用，实现自然语言驱动的视频创作：
 
-1. 在 ArcReel 设置页生成 API Key（`arc-` 前缀）
-2. 在 OpenClaw 中加载 ArcReel 的 Skill 定义（访问 `http://your-domain/skill.md` 自动获取）
+1. 在 Studio360 设置页生成 API Key（`arc-` 前缀）
+2. 在 OpenClaw 中加载 Studio360 的 Skill 定义（访问 `http://your-domain/skill.md` 自动获取）
 3. 通过 OpenClaw 对话即可创建项目、生成剧本、制作视频
 
 技术实现：API Key 认证（Bearer Token）+ 同步 Agent 对话端点（`POST /api/v1/agent/chat`），内部对接 SSE 流式助手并收集完整响应返回。
@@ -301,12 +301,12 @@ uv run pre-commit install
 
 ## Studio360 downstream synchronization / Studio360 下游同步
 
-This repository keeps Studio360-specific changes on `main` and preserves an unmodified ArcReel upstream baseline on `raw`.
+This repository keeps Studio360-specific changes on `main` and preserves an unmodified Studio360 upstream baseline on `raw`.
 
-本仓库将 Studio360 定制改动保留在 `main`，并在 `raw` 分支保留未修改的 ArcReel 上游基线。
+本仓库将 Studio360 定制改动保留在 `main`，并在 `raw` 分支保留未修改的 Studio360 上游基线。
 
-- ArcReel upstream remote / 上游远程：`arcreel` → `https://github.com/ArcReel/ArcReel.git`
-- Upstream branch / 上游分支：`arcreel/main`
+- Studio360 upstream remote / 上游远程：`studio360` → `https://github.com/Studio360/Studio360.git`
+- Upstream branch / 上游分支：`studio360/main`
 - Raw mirror / 原始镜像：`raw` → `origin/raw`
 - Studio360 downstream branch / Studio360 下游分支：`main`
 
@@ -315,9 +315,9 @@ This repository keeps Studio360-specific changes on `main` and preserves an unmo
 Run this only after checking that `raw` has no local-only commits / 仅在确认 `raw` 没有本地独有提交后执行：
 
 ```powershell
-git fetch arcreel main
+git fetch studio360 main
 git switch raw
-git reset --hard arcreel/main
+git reset --hard studio360/main
 git push --force-with-lease origin raw
 
 git switch main
@@ -346,7 +346,7 @@ Then verify the assistant/provider path in the live UI and check the exact deplo
 本项目采用 [GNU Affero 通用公共许可证 v3.0 (AGPL-3.0)](./LICENSE) 授权，
 附加条款见 [NOTICE](./NOTICE)。
 
-Copyright © 2026 Pollo3470 and ArcReel contributors
+Copyright © 2026 Pollo3470 and Studio360 contributors
 
 如果您所在组织的政策不允许使用 AGPL-3.0 许可的软件，或您希望在不承担
 AGPL-3.0 开源义务的前提下商用本项目，请联系：[support@arc-reel.com](mailto:support@arc-reel.com)
