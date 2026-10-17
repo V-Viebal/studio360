@@ -3,14 +3,14 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-studio360}
+      POSTGRES_USER: ${POSTGRES_USER:-arcreel}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in Coolify}
-      POSTGRES_DB: ${POSTGRES_DB:-studio360}
+      POSTGRES_DB: ${POSTGRES_DB:-arcreel}
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-studio360}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arcreel}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -18,13 +18,13 @@ services:
       - internal
 
   app:
-    image: ${RELEASE_IMAGE:-ghcr.io/v-viebal/studio360:local}
+    image: ${RELEASE_IMAGE:-ghcr.io/v-viebal/arcreel:local}
     pull_policy: ${RELEASE_PULL_POLICY:-if_not_present}
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-studio360}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-studio360}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-arcreel}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-arcreel}
       NODE_ENV: ${NODE_ENV:-production}
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     security_opt:
@@ -47,15 +47,15 @@ services:
       - coolify
 volumes:
   postgres_data:
-    name: ${STUDIO360_POSTGRES_VOLUME:-studio360-local-postgres}
+    name: ${STUDIO360_POSTGRES_VOLUME:-arcreel-local-postgres}
   projects_data:
-    name: ${STUDIO360_PROJECTS_VOLUME:-studio360-local-projects}
+    name: ${STUDIO360_PROJECTS_VOLUME:-arcreel-local-projects}
   logs_data:
-    name: ${STUDIO360_LOGS_VOLUME:-studio360-local-logs}
+    name: ${STUDIO360_LOGS_VOLUME:-arcreel-local-logs}
   vertex_keys_data:
-    name: ${STUDIO360_VERTEX_KEYS_VOLUME:-studio360-local-vertex-keys}
+    name: ${STUDIO360_VERTEX_KEYS_VOLUME:-arcreel-local-vertex-keys}
   claude_data:
-    name: ${STUDIO360_CLAUDE_VOLUME:-studio360-local-claude-data}
+    name: ${STUDIO360_CLAUDE_VOLUME:-arcreel-local-claude-data}
 
 networks:
   internal:
