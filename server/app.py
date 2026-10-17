@@ -573,7 +573,7 @@ def create_generation_worker() -> GenerationWorker:
 @app.get("/health")
 async def health_check():
     """健康检查"""
-    return {"status": "ok", "message": "视频项目管理 WebUI 运行正常"}
+    return {"status": "ok", "message": "Studio360 API đang hoạt động bình thường"}
 
 
 @app.get("/skill.md", include_in_schema=False)
