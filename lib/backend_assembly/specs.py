@@ -362,9 +362,7 @@ PROVIDER_SPEC_REGISTRY.update(
         for media_type in ("image", "video")
     }
 )
-PROVIDER_SPEC_REGISTRY[("gemini-llm360", "video")] = _gemini_spec(
-    "gemini-llm360", "video", backend_type="llm360"
-)
+PROVIDER_SPEC_REGISTRY[("gemini-llm360", "video")] = _gemini_spec("gemini-llm360", "video", backend_type="llm360")
 PROVIDER_SPEC_REGISTRY.update(
     {(_KLING_REGISTRY_BACKEND, media_type): _kling_spec(media_type) for media_type in ("image", "video")}
 )
@@ -433,3 +431,4 @@ def get_provider_spec(provider_id: str, media_type: str) -> ProviderSpec:
     if spec is None:
         raise ValueError(f"no builtin ProviderSpec for provider={provider_id!r} media={media_type!r}")
     return spec
+

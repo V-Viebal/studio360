@@ -252,9 +252,7 @@ class TestProjectEventService:
         scripts_dir.mkdir(parents=True, exist_ok=True)
 
         project = pm.load_project("demo")
-        project["episodes"] = [
-            {"episode": 1, "title": "A Gentle Wave", "script_file": "scripts/episode_1_retry.json"}
-        ]
+        project["episodes"] = [{"episode": 1, "title": "A Gentle Wave", "script_file": "scripts/episode_1_retry.json"}]
         project_file = project_path / ProjectManager.PROJECT_FILE
         project_file.write_text(json.dumps(project, ensure_ascii=False), encoding="utf-8")
         before = project_file.read_text(encoding="utf-8")

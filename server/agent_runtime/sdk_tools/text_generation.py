@@ -56,7 +56,9 @@ def _parse_normalized_content(response_text: str, model: type[BaseModel]) -> dic
     except json.JSONDecodeError as e:
         raise ValueError(f"Phân tích JSON nội dung chuẩn hoá step1 thất bại: {e}")
     if not isinstance(data, dict):
-        raise ValueError("Cấu trúc nội dung chuẩn hoá step1 không hợp lệ: Cấp cao nhất phải là đối tượng {title, scenes}")
+        raise ValueError(
+            "Cấu trúc nội dung chuẩn hoá step1 không hợp lệ: Cấp cao nhất phải là đối tượng {title, scenes}"
+        )
     try:
         return model.model_validate(data).model_dump()
     except ValidationError as e:
@@ -418,3 +420,4 @@ __all__ = [
     "confirm_script_review_tool",
     "normalize_drama_script_tool",
 ]
+

@@ -113,8 +113,7 @@ def _is_https_or_local_http(value: str) -> bool:
     except ValueError:
         return False
     return parsed.scheme == "https" or (
-        parsed.scheme == "http"
-        and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+        parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
     )
 
 
@@ -593,18 +592,12 @@ def _roles_and_scopes(payload: dict[str, Any]) -> tuple[tuple[str, ...], tuple[s
         payload.get("http://schemas.microsoft.com/ws/2008/06/identity/claims/role"),
     )
     scope_claims = (payload.get("scope"), payload.get("scopes"), payload.get("scp"))
-    roles = tuple(dict.fromkeys(
-        item.strip().lower()
-        for claim in role_claims
-        for item in _claim_values(claim)
-        if item.strip()
-    ))
-    scopes = tuple(dict.fromkeys(
-        item.strip().lower()
-        for claim in scope_claims
-        for item in _claim_values(claim)
-        if item.strip()
-    ))
+    roles = tuple(
+        dict.fromkeys(item.strip().lower() for claim in role_claims for item in _claim_values(claim) if item.strip())
+    )
+    scopes = tuple(
+        dict.fromkeys(item.strip().lower() for claim in scope_claims for item in _claim_values(claim) if item.strip())
+    )
     return roles, scopes
 
 
@@ -731,3 +724,4 @@ CurrentUser = Annotated[CurrentUserInfo, Depends(get_current_user)]
 CurrentUserFlexible = Annotated[CurrentUserInfo, Depends(get_current_user_flexible)]
 CurrentOperator = Annotated[CurrentUserInfo, Depends(get_current_operator)]
 CurrentAdmin = Annotated[CurrentUserInfo, Depends(get_current_admin)]
+

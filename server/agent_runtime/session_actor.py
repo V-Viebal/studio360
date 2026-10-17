@@ -169,7 +169,9 @@ class SessionActor:
                     elif next_cmd.type == "query":
                         if pending_query is not None:
                             # 上层 race 送来第三个 query：拒绝（FIFO 只保留第一个暂存）
-                            next_cmd.complete(RuntimeError("session busy: Phiên hiện tại đã có truy vấn đang chờ thực thi"))
+                            next_cmd.complete(
+                                RuntimeError("session busy: Phiên hiện tại đã có truy vấn đang chờ thực thi")
+                            )
                         else:
                             # 违反 "drain before new query"：暂存，让消息流自然 drain 完成；
                             # 在 StopAsyncIteration 分支返回 pending_query 由下一轮 _command_loop 处理。
@@ -225,3 +227,4 @@ class SessionActor:
         self._task.cancel()
         with contextlib.suppress(BaseException):
             _ = await self._task  # result intentionally discarded
+

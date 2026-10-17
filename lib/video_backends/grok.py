@@ -215,9 +215,7 @@ class LLM360GrokVideoBackend:
         if request.start_image and Path(request.start_image).exists():
             image_path = Path(request.start_image)
             mime_type = IMAGE_MIME_TYPES.get(image_path.suffix.lower(), "image/png")
-            encoded = await asyncio.to_thread(
-                lambda: base64.b64encode(image_path.read_bytes()).decode("ascii")
-            )
+            encoded = await asyncio.to_thread(lambda: base64.b64encode(image_path.read_bytes()).decode("ascii"))
             payload["image"] = f"data:{mime_type};base64,{encoded}"
 
         headers = {
@@ -236,9 +234,7 @@ class LLM360GrokVideoBackend:
             submitted = response.json()
             request_id = str(submitted.get("request_id") or submitted.get("id") or "").strip()
             if not request_id:
-                raise RuntimeError(
-                    f"LLM360 video submission returned no request_id: {json.dumps(submitted)[:500]}"
-                )
+                raise RuntimeError(f"LLM360 video submission returned no request_id: {json.dumps(submitted)[:500]}")
 
             max_wait = max(600.0, float(request.duration_seconds) * 30.0)
             deadline = asyncio.get_running_loop().time() + max_wait
@@ -256,19 +252,14 @@ class LLM360GrokVideoBackend:
                 if status in {"done", "completed", "succeeded", "success"}:
                     break
                 if status in {"failed", "expired", "error", "canceled", "cancelled"}:
-                    raise RuntimeError(
-                        f"LLM360 video generation failed ({status}): "
-                        f"{json.dumps(final)[:700]}"
-                    )
+                    raise RuntimeError(f"LLM360 video generation failed ({status}): {json.dumps(final)[:700]}")
             else:
                 raise TimeoutError(f"LLM360 video generation timed out: {request_id}")
 
             video = final.get("video") if isinstance(final, dict) else None
             video_url = video.get("url") if isinstance(video, dict) else None
             if not isinstance(video_url, str) or not video_url.strip():
-                raise RuntimeError(
-                    f"LLM360 video completed without video.url: {json.dumps(final)[:700]}"
-                )
+                raise RuntimeError(f"LLM360 video completed without video.url: {json.dumps(final)[:700]}")
 
             download = await client.get(video_url, headers={"Accept": "video/mp4"})
             download.raise_for_status()
@@ -283,3 +274,4 @@ class LLM360GrokVideoBackend:
             video_uri=video_url,
             generate_audio=True,
         )
+

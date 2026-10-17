@@ -60,8 +60,10 @@ async def auth_status():
     且实际"是否需要登录"通过 401/200 也能从外部观察到，因此不增量泄露。
     """
     configuration_error = logto_configuration_error()
-    mode = "logto" if is_logto_configured() and configuration_error is None else (
-        "misconfigured" if configuration_error else "legacy"
+    mode = (
+        "logto"
+        if is_logto_configured() and configuration_error is None
+        else ("misconfigured" if configuration_error else "legacy")
     )
     return AuthStatusResponse(
         enabled=is_auth_enabled(),
@@ -111,3 +113,4 @@ async def verify(
     使用 OAuth2 Bearer token 依赖自动提取和验证 token。
     """
     return VerifyResponse(valid=True, username=current_user.sub)
+

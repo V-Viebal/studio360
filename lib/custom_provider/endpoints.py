@@ -148,7 +148,12 @@ def _build_openai_video(provider, model_id: str) -> CustomVideoBackend:
     # select the native backend when the configured host is xAI itself.
     if model_id.lower().startswith("grok-imagine-video") and (hostname == "api.x.ai" or hostname.endswith(".x.ai")):
         delegate = GrokVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)
-    elif model_id.lower().startswith("grok-imagine-video") and (hostname.endswith(".hmz.one") or hostname.endswith(".antares.vn") or hostname == "localhost" or hostname == "127.0.0.1"):
+    elif model_id.lower().startswith("grok-imagine-video") and (
+        hostname.endswith(".hmz.one")
+        or hostname.endswith(".antares.vn")
+        or hostname == "localhost"
+        or hostname == "127.0.0.1"
+    ):
         # LLM360 node: keep the xAI credential inside the gateway and use its
         # OpenAI-compatible video passthrough instead of the native xAI SDK.
         delegate = LLM360GrokVideoBackend(api_key=provider.api_key, base_url=base_url, model=model_id)
@@ -601,3 +606,4 @@ def infer_endpoint(model_id: str, discovery_format: str) -> str:
     if _AUDIO_PATTERN.search(model_id) and not _ASR_PATTERN.search(model_id):
         return "openai-tts"
     return "gemini-generate" if discovery_format == "google" else "openai-chat"
+

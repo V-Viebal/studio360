@@ -65,7 +65,9 @@ def generate_narration_audio_tool(ctx: ToolContext):
 
             script = ctx.pm.load_script(ctx.project_name, script_filename)
             if script.get("content_mode") == "drama":
-                raise ValueError("Lồng tiếng dẫn chuyện chỉ áp dụng cho kịch bản chế độ thuyết minh (narration); các scenes của chế độ drama không có novel_text")
+                raise ValueError(
+                    "Lồng tiếng dẫn chuyện chỉ áp dụng cho kịch bản chế độ thuyết minh (narration); các scenes của chế độ drama không có novel_text"
+                )
 
             items, id_field, *_ = get_storyboard_items(script)
             if not items:
@@ -151,3 +153,4 @@ def generate_narration_audio_tool(ctx: ToolContext):
 
 
 __all__ = ["generate_narration_audio_tool"]
+

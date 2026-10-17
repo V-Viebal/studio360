@@ -396,7 +396,6 @@ _XFADE_TYPE_MAP: dict[str, str] = {
     "fadegrays": "fadegrays",
     "fadefast": "fadefast",
     "fadeslow": "fadeslow",
-
     # Wipes
     "wipe": "wipeleft",
     "wipeleft": "wipeleft",
@@ -407,7 +406,6 @@ _XFADE_TYPE_MAP: dict[str, str] = {
     "wipetr": "wipetr",
     "wipebl": "wipebl",
     "wipebr": "wipebr",
-
     # Slides & Pushes
     "slideleft": "slideleft",
     "slideright": "slideright",
@@ -417,7 +415,6 @@ _XFADE_TYPE_MAP: dict[str, str] = {
     "smoothright": "smoothright",
     "smoothup": "smoothup",
     "smoothdown": "smoothdown",
-
     # Covers & Reveals
     "coverleft": "coverleft",
     "coverright": "coverright",
@@ -427,7 +424,6 @@ _XFADE_TYPE_MAP: dict[str, str] = {
     "revealright": "revealright",
     "revealup": "revealup",
     "revealdown": "revealdown",
-
     # Squeezes & Slices
     "squeezeh": "squeezeh",
     "squeezev": "squeezev",
@@ -439,13 +435,11 @@ _XFADE_TYPE_MAP: dict[str, str] = {
     "diagtr": "diagtr",
     "diagbl": "diagbl",
     "diagbr": "diagbr",
-
     # Winds
     "hlwind": "hlwind",
     "hrwind": "hrwind",
     "vuwind": "vuwind",
     "vdwind": "vdwind",
-
     # Cinematic Shapes, Zooms & Blurs
     "circlecrop": "circlecrop",
     "circleopen": "circleopen",
@@ -662,7 +656,11 @@ def add_background_music(video_path: Path, music_path: Path, output_path: Path, 
 
 
 def compose_video(
-    script_filename: str, output_filename: str = None, music_path: str = None, use_transitions: bool = True, transition_duration: float = 0.5
+    script_filename: str,
+    output_filename: str = None,
+    music_path: str = None,
+    use_transitions: bool = True,
+    transition_duration: float = 0.5,
 ) -> Path:
     """
     合成最终视频
@@ -712,7 +710,9 @@ def compose_video(
             raise FileNotFoundError(f"视频文件不存在或不是普通文件: {video_path}")
 
         video_paths.append(video_path)
-        transitions.append(item.get("transition_to_next") or item.get("transition") or ("dissolve" if use_transitions else "cut"))
+        transitions.append(
+            item.get("transition_to_next") or item.get("transition") or ("dissolve" if use_transitions else "cut")
+        )
 
     if not video_paths:
         raise ValueError("没有可用的视频片段")
@@ -787,7 +787,13 @@ def main():
         sys.exit(1)
 
     try:
-        output_path = compose_video(args.script, args.output, args.music, use_transitions=not args.no_transitions, transition_duration=args.transition_duration)
+        output_path = compose_video(
+            args.script,
+            args.output,
+            args.music,
+            use_transitions=not args.no_transitions,
+            transition_duration=args.transition_duration,
+        )
 
         print(f"\n🎉 最终视频: {output_path}")
         print("   单独片段保留在: videos/")
@@ -799,3 +805,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
